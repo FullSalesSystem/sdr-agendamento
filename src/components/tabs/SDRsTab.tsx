@@ -26,19 +26,22 @@ export default function SDRsTab({ agendamentos, sdrs, selM }: Props) {
     [agendamentos, sdrs]
   );
 
+  const colors = ["bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-cyan-500"];
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <div className="font-bold text-xs mb-3.5 uppercase tracking-wider text-slate-500">
-        SDRs — {MESES[selM]}
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100">
+        <div className="font-bold text-sm text-slate-800">SDRs</div>
+        <div className="text-xs text-slate-400">{MESES[selM]} — desempenho individual</div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50">
+            <tr className="bg-slate-50/80">
               {["SDR", "Agendamentos", "Reagend.", "Total", "Produtos"].map((h) => (
                 <th
                   key={h}
-                  className="px-3 py-2.5 text-left font-bold text-slate-500 border-b-2 border-slate-200 text-[11px] uppercase tracking-wider whitespace-nowrap"
+                  className="px-4 py-3 text-left font-semibold text-slate-400 border-b border-slate-100 text-[11px] uppercase tracking-wider whitespace-nowrap"
                 >
                   {h}
                 </th>
@@ -47,12 +50,25 @@ export default function SDRsTab({ agendamentos, sdrs, selM }: Props) {
           </thead>
           <tbody>
             {bySDR.map((s, i) => (
-              <tr key={s.name} className={`border-b border-slate-100 ${i % 2 ? "bg-slate-50" : "bg-white"}`}>
-                <td className="px-3 py-2 font-bold">{s.name}</td>
-                <td className="px-3 py-2 text-blue-600 font-semibold">{s.ag}</td>
-                <td className="px-3 py-2 text-amber-600 font-semibold">{s.re}</td>
-                <td className="px-3 py-2 font-semibold">{s.tot}</td>
-                <td className="px-3 py-2 text-slate-400 text-xs">{s.ps}</td>
+              <tr key={s.name} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg ${colors[i % colors.length]} flex items-center justify-center text-white text-xs font-bold`}>
+                      {s.name.charAt(0)}
+                    </div>
+                    <span className="font-semibold text-slate-800">{s.name}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="font-bold text-blue-600 tabular-nums">{s.ag}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="font-bold text-amber-600 tabular-nums">{s.re}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="font-bold text-slate-700 tabular-nums">{s.tot}</span>
+                </td>
+                <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">{s.ps}</td>
               </tr>
             ))}
           </tbody>

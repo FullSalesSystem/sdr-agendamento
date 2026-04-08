@@ -21,33 +21,37 @@ export default function TagList({ items, onRemove, onAdd, placeholder }: TagList
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap gap-2 mb-3">
         {items.map((item) => (
           <span
             key={item}
-            className="flex items-center gap-1 bg-blue-50 border border-slate-200 rounded-md px-2.5 py-1 text-sm text-blue-700 font-medium"
+            className="group flex items-center gap-1.5 bg-gradient-to-b from-blue-50 to-blue-50/50 border border-blue-200/60 rounded-lg px-3 py-1.5 text-sm text-blue-700 font-medium transition-all hover:border-blue-300 hover:shadow-sm"
           >
             {item}
             <button
               onClick={() => onRemove(item)}
-              className="text-red-500 text-base leading-none ml-0.5 hover:text-red-700"
+              className="text-blue-300 text-sm leading-none hover:text-red-500 transition-colors rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-50"
             >
               ×
             </button>
           </span>
         ))}
+        {items.length === 0 && (
+          <span className="text-xs text-slate-400 italic">Nenhum item adicionado</span>
+        )}
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") add(); }}
           placeholder={placeholder}
-          className="flex-1 text-sm border border-slate-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900"
+          className="flex-1 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-slate-900 placeholder:text-slate-400 transition-all"
         />
         <button
           onClick={add}
-          className="px-4 py-2 rounded-md bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-colors"
+          disabled={!value.trim()}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-blue-600/20 hover:shadow-md hover:shadow-blue-600/25"
         >
           +
         </button>

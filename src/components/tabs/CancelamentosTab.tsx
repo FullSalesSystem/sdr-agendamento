@@ -20,44 +20,53 @@ export default function CancelamentosTab({ agendamentos, motivos, selM }: Props)
 
   return (
     <div>
-      <div className="flex gap-3 mb-3.5 flex-wrap">
-        {motivos.map((m) => (
-          <div
-            key={m}
-            className="bg-white rounded-xl flex-1 min-w-[120px] border border-slate-100 border-t-[3px] border-t-red-600 p-4"
-          >
-            <div className="text-[11px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">
-              {m}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        {motivos.map((m) => {
+          const count = cancels.filter((a) => a.cancel_motivo === m).length;
+          return (
+            <div
+              key={m}
+              className="bg-white rounded-2xl border border-slate-100 shadow-sm border-t-[3px] border-t-red-500 p-4 card-hover"
+            >
+              <div className="text-[11px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+                {m}
+              </div>
+              <div className="text-3xl font-bold text-red-600 tabular-nums">{count}</div>
             </div>
-            <div className="text-2xl font-bold text-red-600">
-              {cancels.filter((a) => a.cancel_motivo === m).length}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <div className="font-bold text-xs mb-3.5 uppercase tracking-wider text-slate-500 flex justify-between">
-          <span>Histórico — {MESES[selM]}</span>
-          <span className="font-normal text-xs normal-case text-slate-400">
-            {cancels.length} ocorrência{cancels.length !== 1 ? "s" : ""}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div className="font-bold text-sm text-slate-800">Historico</div>
+            <div className="text-xs text-slate-400">{MESES[selM]}</div>
+          </div>
+          <span className="text-xs font-medium text-slate-400 bg-slate-100 rounded-full px-3 py-1">
+            {cancels.length} ocorrencia{cancels.length !== 1 ? "s" : ""}
           </span>
         </div>
 
         {cancels.length === 0 ? (
-          <div className="text-center text-slate-400 text-sm py-4">
-            Nenhum cancelamento em {MESES[selM]}.
+          <div className="text-center py-12">
+            <div className="w-12 h-12 rounded-full bg-green-50 border border-green-100 flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="text-slate-400 text-sm">Nenhum cancelamento em {MESES[selM]}</div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50">
+                <tr className="bg-slate-50/80">
                   {["Data", "Hora", "Closer", "SDR", "Produto", "Status", "Motivo", "Obs."].map(
                     (h) => (
                       <th
                         key={h}
-                        className="px-2.5 py-2 text-left font-bold text-slate-500 border-b-2 border-slate-200 text-[11px] uppercase whitespace-nowrap"
+                        className="px-3 py-3 text-left font-semibold text-slate-400 border-b border-slate-100 text-[11px] uppercase tracking-wider whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -71,24 +80,26 @@ export default function CancelamentosTab({ agendamentos, motivos, selM }: Props)
                   .map((a, i) => (
                     <tr
                       key={a.id}
-                      className={`border-b border-slate-100 ${i % 2 ? "bg-slate-50" : "bg-white"}`}
+                      className={`border-b border-slate-50 hover:bg-red-50/30 transition-colors ${i % 2 ? "bg-slate-50/30" : ""}`}
                     >
-                      <td className="px-2.5 py-2 whitespace-nowrap font-semibold">
+                      <td className="px-3 py-2.5 whitespace-nowrap font-semibold text-slate-700">
                         {parseDate(a.date).toLocaleDateString("pt-BR")}
                       </td>
-                      <td className="px-2.5 py-2">{a.horario}</td>
-                      <td className="px-2.5 py-2 font-bold text-blue-600">{a.closer || "—"}</td>
-                      <td className="px-2.5 py-2">{a.sdr || "—"}</td>
-                      <td className="px-2.5 py-2">
-                        {a.produto ? <Badge label={a.produto} /> : "—"}
+                      <td className="px-3 py-2.5 text-slate-500 tabular-nums">{a.horario}</td>
+                      <td className="px-3 py-2.5 font-bold text-blue-600">{a.closer || "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-500">{a.sdr || "—"}</td>
+                      <td className="px-3 py-2.5">
+                        {a.produto ? <Badge label={a.produto} size="md" /> : "—"}
                       </td>
-                      <td className="px-2.5 py-2">
-                        {a.status ? <Badge label={a.status} /> : "—"}
+                      <td className="px-3 py-2.5">
+                        {a.status ? <Badge label={a.status} size="md" /> : "—"}
                       </td>
-                      <td className="px-2.5 py-2 text-red-600 font-semibold whitespace-nowrap">
-                        {a.cancel_motivo}
+                      <td className="px-3 py-2.5">
+                        <span className="text-red-600 font-semibold text-xs bg-red-50 border border-red-100 rounded-md px-2 py-0.5 whitespace-nowrap">
+                          {a.cancel_motivo}
+                        </span>
                       </td>
-                      <td className="px-2.5 py-2 text-slate-400 text-xs">{a.obs || "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-400 text-xs max-w-[150px] truncate">{a.obs || "—"}</td>
                     </tr>
                   ))}
               </tbody>

@@ -28,44 +28,55 @@ export default function RelatorioTab({ agendamentos, produtos, selM }: Props) {
   }, [mAgs, produtos]);
 
   const colorMap: Record<string, string> = {
-    Aceleração: "bg-blue-600",
-    Bloqueia: "bg-red-600",
+    Aceleração: "bg-blue-500",
+    Bloqueia: "bg-red-500",
     Livre: "bg-slate-400",
-    Formação: "bg-amber-600",
-    Ativação: "bg-violet-600",
+    Formação: "bg-amber-500",
+    Ativação: "bg-violet-500",
     Overbook: "bg-slate-500",
   };
 
   return (
     <div>
-      <div className="flex gap-3 mb-5 flex-wrap">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Metric label="Agendamentos" value={totAg} color="blue" />
         <Metric label="Reagendamentos" value={totRe} color="amber" />
         <Metric label="Bloqueados" value={totBl} color="red" />
         <Metric label="No show" value={totNS} color="red" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-100 p-4">
-        <div className="font-bold text-xs mb-4 uppercase tracking-wider text-slate-500">
-          Por produto — {MESES[selM]}
-        </div>
-        {prodStats.map(({ p, cnt, pct }) => (
-          <div key={p} className="mb-3">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="font-semibold">{p}</span>
-              <span className="text-slate-400 font-semibold">{cnt}</span>
-            </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-400 ${colorMap[p] || "bg-blue-600"}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <div className="font-bold text-sm text-slate-800">Por produto</div>
+            <div className="text-xs text-slate-400">{MESES[selM]} — {mAgs.length} total</div>
           </div>
-        ))}
+        </div>
+
+        <div className="space-y-4">
+          {prodStats.map(({ p, cnt, pct }) => (
+            <div key={p}>
+              <div className="flex justify-between text-sm mb-1.5">
+                <span className="font-semibold text-slate-700">{p}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 tabular-nums">{pct}%</span>
+                  <span className="text-sm font-bold text-slate-600 tabular-nums min-w-[20px] text-right">{cnt}</span>
+                </div>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${colorMap[p] || "bg-blue-500"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
         {mAgs.length === 0 && (
-          <div className="text-center text-slate-400 text-sm py-4">
-            Nenhum agendamento em {MESES[selM]}.
+          <div className="text-center py-8">
+            <div className="text-slate-300 text-3xl mb-2">0</div>
+            <div className="text-slate-400 text-sm">Nenhum agendamento em {MESES[selM]}</div>
           </div>
         )}
       </div>
