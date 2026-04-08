@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Settings, GroupConfig } from "@/lib/types";
 import {
   DEFAULT_CLOSERS, DEFAULT_SDRS, DEFAULT_PRODUTOS, DEFAULT_MOTIVOS,
-  DEFAULT_CONFIG_H1, DEFAULT_CONFIG_H2,
+  DEFAULT_CONFIG_H1, DEFAULT_CONFIG_H2, SHARED_USER_ID,
 } from "@/lib/constants";
 
 const defaults: Omit<Settings, "id" | "user_id"> = {
@@ -24,13 +24,10 @@ export function useSettings() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { data } = await supabase
         .from("settings")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", SHARED_USER_ID)
         .single();
 
       if (data) {
@@ -39,6 +36,20 @@ export function useSettings() {
           config_h1: data.config_h1 as GroupConfig,
           config_h2: data.config_h2 as GroupConfig,
         });
+      } else {
+        // Auto-create settings row
+        const { data: created } = await supabase
+          .from("settings")
+          .insert({ user_id: SHARED_USER_ID })
+          .select()
+          .single();
+        if (created) {
+          setSettings({
+            ...created,
+            config_h1: created.config_h1 as GroupConfig,
+            config_h2: created.config_h2 as GroupConfig,
+          });
+        }
       }
       setLoading(false);
     }

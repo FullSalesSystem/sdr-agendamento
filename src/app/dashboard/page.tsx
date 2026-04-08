@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useSettings } from "@/hooks/useSettings";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { MESES, TABS } from "@/lib/constants";
 import type { TabName } from "@/lib/constants";
 import type { Agendamento, AgendamentoForm } from "@/lib/types";
-import { orderedHours, fmtDate } from "@/lib/utils";
+import { orderedHours } from "@/lib/utils";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import DeleteModal from "@/components/DeleteModal";
 import AgendamentoTab from "@/components/tabs/AgendamentoTab";
@@ -101,12 +100,6 @@ export default function DashboardPage() {
     setModal(null);
   }
 
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
-
   const years = [now.getFullYear(), now.getFullYear() + 1];
 
   if (sLoading || aLoading) {
@@ -155,12 +148,6 @@ export default function DashboardPage() {
             <option key={y}>{y}</option>
           ))}
         </select>
-        <button
-          onClick={handleLogout}
-          className="text-white/60 hover:text-white text-xs font-medium ml-2 transition-colors"
-        >
-          Sair
-        </button>
       </div>
 
       {/* Tabs */}

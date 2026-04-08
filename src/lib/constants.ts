@@ -46,3 +46,6 @@ export const DEFAULT_MOTIVOS = ["Lead pediu para reagendar", "No show"];
 
 export const DEFAULT_CONFIG_H1 = { closers: ["Yan", "José", "Lorraynne"], overbook: 1 };
 export const DEFAULT_CONFIG_H2 = { closers: ["Yan", "José", "Lorraynne"], overbook: 1 };
+
+// Fixed shared user ID (no auth)
+export const SHARED_USER_ID = "00000000-0000-0000-0000-000000000001";

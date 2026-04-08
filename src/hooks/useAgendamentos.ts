@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Agendamento, AgendamentoForm } from "@/lib/types";
 import { fmtDate } from "@/lib/utils";
+import { SHARED_USER_ID } from "@/lib/constants";
 
 export function useAgendamentos() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
@@ -11,13 +12,10 @@ export function useAgendamentos() {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     const { data } = await supabase
       .from("agendamentos")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", SHARED_USER_ID)
       .order("date", { ascending: true });
 
     if (data) setAgendamentos(data);
@@ -27,11 +25,8 @@ export function useAgendamentos() {
   useEffect(() => { load(); }, [load]);
 
   const upsert = useCallback(async (date: Date, form: AgendamentoForm, existingId?: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     const payload = {
-      user_id: user.id,
+      user_id: SHARED_USER_ID,
       date: fmtDate(date),
       horario: form.horario,
       closer: form.closer,
