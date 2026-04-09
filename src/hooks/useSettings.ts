@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Settings, GroupConfig } from "@/lib/types";
 import {
@@ -26,6 +26,8 @@ export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   useEffect(() => {
     async function load() {
@@ -77,24 +79,24 @@ export function useSettings() {
   }, [supabase]);
 
   const update = useCallback(async (partial: Partial<Omit<Settings, "id" | "user_id">>) => {
-    if (!settings) return;
-    const previous = { ...settings };
-    const updated = { ...settings, ...partial };
+    const current = settingsRef.current;
+    if (!current) return;
+    const previous = { ...current };
+    const updated = { ...current, ...partial };
     setSettings(updated);
 
     try {
       const { error } = await supabase
         .from("settings")
         .update(partial)
-        .eq("id", settings.id);
+        .eq("id", current.id);
       if (error) throw error;
     } catch (err) {
-      // Rollback on error
       setSettings(previous);
       console.error("Erro ao salvar configurações:", err);
       throw err;
     }
-  }, [settings, supabase]);
+  }, [supabase]);
 
   return { settings: settings ?? (defaults as Settings), loading, update };
 }
