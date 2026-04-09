@@ -29,54 +29,71 @@ export function useSettings() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("settings")
-        .select("*")
-        .eq("user_id", SHARED_USER_ID)
-        .single();
-
-      if (data) {
-        setSettings({
-          ...data,
-          config_h1: data.config_h1 as GroupConfig,
-          config_h2: data.config_h2 as GroupConfig,
-          horarios_h1: data.horarios_h1 ?? DEFAULT_H1,
-          horarios_h2: data.horarios_h2 ?? DEFAULT_H2,
-          horarios_h1_sab: data.horarios_h1_sab ?? DEFAULT_H1_SAB,
-          horarios_h2_sab: data.horarios_h2_sab ?? DEFAULT_H2_SAB,
-        });
-      } else {
-        const { data: created } = await supabase
+      try {
+        const { data, error } = await supabase
           .from("settings")
-          .insert({ user_id: SHARED_USER_ID })
-          .select()
+          .select("*")
+          .eq("user_id", SHARED_USER_ID)
           .single();
-        if (created) {
+
+        if (error && error.code !== "PGRST116") throw error;
+
+        if (data) {
           setSettings({
-            ...created,
-            config_h1: created.config_h1 as GroupConfig,
-            config_h2: created.config_h2 as GroupConfig,
-            horarios_h1: created.horarios_h1 ?? DEFAULT_H1,
-            horarios_h2: created.horarios_h2 ?? DEFAULT_H2,
-            horarios_h1_sab: created.horarios_h1_sab ?? DEFAULT_H1_SAB,
-            horarios_h2_sab: created.horarios_h2_sab ?? DEFAULT_H2_SAB,
+            ...data,
+            config_h1: data.config_h1 as GroupConfig,
+            config_h2: data.config_h2 as GroupConfig,
+            horarios_h1: data.horarios_h1 ?? DEFAULT_H1,
+            horarios_h2: data.horarios_h2 ?? DEFAULT_H2,
+            horarios_h1_sab: data.horarios_h1_sab ?? DEFAULT_H1_SAB,
+            horarios_h2_sab: data.horarios_h2_sab ?? DEFAULT_H2_SAB,
           });
+        } else {
+          const { data: created, error: insertErr } = await supabase
+            .from("settings")
+            .insert({ user_id: SHARED_USER_ID })
+            .select()
+            .single();
+          if (insertErr) throw insertErr;
+          if (created) {
+            setSettings({
+              ...created,
+              config_h1: created.config_h1 as GroupConfig,
+              config_h2: created.config_h2 as GroupConfig,
+              horarios_h1: created.horarios_h1 ?? DEFAULT_H1,
+              horarios_h2: created.horarios_h2 ?? DEFAULT_H2,
+              horarios_h1_sab: created.horarios_h1_sab ?? DEFAULT_H1_SAB,
+              horarios_h2_sab: created.horarios_h2_sab ?? DEFAULT_H2_SAB,
+            });
+          }
         }
+      } catch (err) {
+        console.error("Erro ao carregar configurações:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
   }, [supabase]);
 
   const update = useCallback(async (partial: Partial<Omit<Settings, "id" | "user_id">>) => {
     if (!settings) return;
+    const previous = { ...settings };
     const updated = { ...settings, ...partial };
     setSettings(updated);
 
-    await supabase
-      .from("settings")
-      .update(partial)
-      .eq("id", settings.id);
+    try {
+      const { error } = await supabase
+        .from("settings")
+        .update(partial)
+        .eq("id", settings.id);
+      if (error) throw error;
+    } catch (err) {
+      // Rollback on error
+      setSettings(previous);
+      console.error("Erro ao salvar configurações:", err);
+      throw err;
+    }
   }, [settings, supabase]);
 
   return { settings: settings ?? (defaults as Settings), loading, update };

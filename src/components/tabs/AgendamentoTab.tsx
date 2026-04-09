@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Badge from "@/components/Badge";
 import type { Agendamento, GroupConfig, Settings } from "@/lib/types";
 import {
-  weekOf, monthDays, toWeeks, orderedHours, slotInfo,
+  weekOf, monthDays, toWeeks, orderedHours, slotInfo, getHoursForDate,
   fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay,
 } from "@/lib/utils";
 import { DSEM } from "@/lib/constants";
@@ -211,7 +211,8 @@ export default function AgendamentoTab({
       </div>
 
       {/* Week grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 pb-2">
+      <div className="grid grid-cols-7 gap-2 min-w-[900px]">
         {week.map((date) => {
           const blk = isSun(date);
           const hrs = orderedHours(date, hoursConfig);
@@ -271,11 +272,15 @@ export default function AgendamentoTab({
                     );
                   })}
 
-                  {isSat(date) && (
-                    <div className="text-[10px] text-slate-300 text-center mt-2 pt-1.5 border-t border-slate-100 font-semibold uppercase">
-                      ate 14h
-                    </div>
-                  )}
+                  {isSat(date) && (() => {
+                    const { h1, h2 } = getHoursForDate(date, hoursConfig);
+                    const maxH = Math.max(...[...h1, ...h2].map(Number));
+                    return (
+                      <div className="text-[10px] text-slate-300 text-center mt-2 pt-1.5 border-t border-slate-100 font-semibold uppercase">
+                        ate {maxH}h
+                      </div>
+                    );
+                  })()}
 
                   {/* Daily score */}
                   {(() => {
@@ -337,6 +342,7 @@ export default function AgendamentoTab({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

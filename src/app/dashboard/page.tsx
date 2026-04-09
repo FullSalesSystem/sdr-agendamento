@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
+import { useToast } from "@/components/Toast";
 import { MESES, TABS } from "@/lib/constants";
 import type { TabName } from "@/lib/constants";
 import type { Agendamento, AgendamentoForm } from "@/lib/types";
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [selM, setSelM] = useState(now.getMonth());
   const [selY, setSelY] = useState(now.getFullYear());
   const [wDate, setWDate] = useState(now);
+  const { toast } = useToast();
 
   const { settings, loading: sLoading, update: updateSettings } = useSettings();
   const { agendamentos, loading: aLoading, upsert, cancel, remove } = useAgendamentos();
@@ -49,6 +51,7 @@ export default function DashboardPage() {
   const [form, setForm] = useState<AgendamentoForm>(emptyForm());
   const [delModal, setDelModal] = useState<{ agId: string; grace: boolean } | null>(null);
 
+  // Filter: exclude canceled from month metrics
   const monthAgs = useMemo(() => {
     return agendamentos.filter((a) => {
       const d = new Date(a.date + "T00:00:00");
@@ -56,7 +59,9 @@ export default function DashboardPage() {
     });
   }, [agendamentos, selM, selY]);
 
-  const totalMonth = monthAgs.filter((a) => a.status === "Agendamento").length;
+  const monthAgsActive = useMemo(() => monthAgs.filter((a) => !a.cancelado), [monthAgs]);
+
+  const totalMonth = monthAgsActive.filter((a) => a.status === "Agendamento").length;
 
   const selWeek = useCallback((d: Date) => {
     setWDate(d);
@@ -84,8 +89,13 @@ export default function DashboardPage() {
 
   async function handleSave(f: AgendamentoForm) {
     if (!modal) return;
-    await upsert(modal.date, f, modal.agId);
-    setModal(null);
+    try {
+      await upsert(modal.date, f, modal.agId);
+      setModal(null);
+      toast(modal.agId ? "Agendamento atualizado" : "Agendamento criado");
+    } catch {
+      toast("Erro ao salvar agendamento", "error");
+    }
   }
 
   function handleDeleteClick() {
@@ -97,16 +107,35 @@ export default function DashboardPage() {
 
   async function handleCancel(motivo: string) {
     if (!delModal) return;
-    await cancel(delModal.agId, motivo);
-    setDelModal(null);
-    setModal(null);
+    try {
+      await cancel(delModal.agId, motivo);
+      setDelModal(null);
+      setModal(null);
+      toast("Agendamento cancelado");
+    } catch {
+      toast("Erro ao cancelar agendamento", "error");
+    }
   }
 
   async function handleRemove() {
     if (!delModal) return;
-    await remove(delModal.agId);
-    setDelModal(null);
-    setModal(null);
+    try {
+      await remove(delModal.agId);
+      setDelModal(null);
+      setModal(null);
+      toast("Agendamento excluído");
+    } catch {
+      toast("Erro ao excluir agendamento", "error");
+    }
+  }
+
+  async function handleUpdateSettings(partial: Parameters<typeof updateSettings>[0]) {
+    try {
+      await updateSettings(partial);
+      toast("Configuração salva");
+    } catch {
+      toast("Erro ao salvar configuração", "error");
+    }
   }
 
   const years = [now.getFullYear(), now.getFullYear() + 1];
@@ -123,18 +152,18 @@ export default function DashboardPage() {
   return (
     <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 min-h-screen font-sans text-slate-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-5 py-4 flex items-center gap-4 shadow-lg shadow-blue-900/10">
-        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-bold text-white text-lg shadow-inner">
+      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-4 sm:px-5 py-4 flex items-center gap-3 sm:gap-4 shadow-lg shadow-blue-900/10">
+        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-bold text-white text-lg shadow-inner shrink-0">
           S
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="text-white font-bold text-base tracking-tight">SDR Agendamento</div>
           <div className="text-blue-200 text-xs flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-            {totalMonth} agendamento{totalMonth !== 1 ? "s" : ""} em {MESES[selM]}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot shrink-0" />
+            <span className="truncate">{totalMonth} agendamento{totalMonth !== 1 ? "s" : ""} em {MESES[selM]}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <select
             value={selM}
             onChange={(e) => {
@@ -142,7 +171,7 @@ export default function DashboardPage() {
               setSelM(m);
               selWeek(new Date(selY, m, 1));
             }}
-            className="text-sm rounded-lg px-3 py-2 bg-white/15 backdrop-blur-sm text-white outline-none border border-white/10 hover:bg-white/25 transition-colors cursor-pointer [&>option]:text-slate-900 [&>option]:bg-white"
+            className="text-sm rounded-lg px-2 sm:px-3 py-2 bg-white/15 backdrop-blur-sm text-white outline-none border border-white/10 hover:bg-white/25 transition-colors cursor-pointer [&>option]:text-slate-900 [&>option]:bg-white"
           >
             {MESES.map((m, i) => (
               <option key={i} value={i}>{m}</option>
@@ -155,7 +184,7 @@ export default function DashboardPage() {
               setSelY(y);
               selWeek(new Date(y, selM, 1));
             }}
-            className="text-sm rounded-lg px-3 py-2 bg-white/15 backdrop-blur-sm text-white outline-none border border-white/10 hover:bg-white/25 transition-colors cursor-pointer [&>option]:text-slate-900 [&>option]:bg-white"
+            className="text-sm rounded-lg px-2 sm:px-3 py-2 bg-white/15 backdrop-blur-sm text-white outline-none border border-white/10 hover:bg-white/25 transition-colors cursor-pointer [&>option]:text-slate-900 [&>option]:bg-white"
           >
             {years.map((y) => (
               <option key={y}>{y}</option>
@@ -170,25 +199,25 @@ export default function DashboardPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`group flex items-center gap-2 px-4 py-3.5 text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
+            className={`group flex items-center gap-2 px-3 sm:px-4 py-3.5 text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
               tab === t
                 ? "font-semibold text-blue-600 border-blue-600 bg-blue-50/50"
                 : "font-medium text-slate-400 border-transparent hover:text-slate-600 hover:bg-slate-50/50"
             }`}
           >
             <svg
-              className={`w-4 h-4 transition-colors ${tab === t ? "text-blue-500" : "text-slate-300 group-hover:text-slate-400"}`}
+              className={`w-4 h-4 transition-colors shrink-0 ${tab === t ? "text-blue-500" : "text-slate-300 group-hover:text-slate-400"}`}
               fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={TAB_ICONS[t]} />
             </svg>
-            {t}
+            <span className="hidden sm:inline">{t}</span>
           </button>
         ))}
       </div>
 
       {/* Content */}
-      <div className="p-4 lg:p-6 animate-fade-in" key={tab}>
+      <div className="p-3 sm:p-4 lg:p-6 animate-fade-in" key={tab}>
         {tab === "Agendamento" && (
           <AgendamentoTab
             selM={selM}
@@ -207,11 +236,11 @@ export default function DashboardPage() {
         )}
 
         {tab === "Relatório" && (
-          <RelatorioTab agendamentos={monthAgs} produtos={settings.produtos} selM={selM} />
+          <RelatorioTab agendamentos={monthAgsActive} produtos={settings.produtos} selM={selM} />
         )}
 
         {tab === "SDRs" && (
-          <SDRsTab agendamentos={monthAgs} sdrs={settings.sdrs} selM={selM} />
+          <SDRsTab agendamentos={monthAgsActive} sdrs={settings.sdrs} selM={selM} />
         )}
 
         {tab === "Por Closer" && (
@@ -223,7 +252,7 @@ export default function DashboardPage() {
         )}
 
         {tab === "Configurações" && (
-          <ConfiguracoesTab settings={settings} onUpdate={updateSettings} />
+          <ConfiguracoesTab settings={settings} onUpdate={handleUpdateSettings} />
         )}
       </div>
 

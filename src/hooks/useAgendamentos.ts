@@ -12,14 +12,21 @@ export function useAgendamentos() {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("agendamentos")
-      .select("*")
-      .eq("user_id", SHARED_USER_ID)
-      .order("date", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("agendamentos")
+        .select("*")
+        .eq("user_id", SHARED_USER_ID)
+        .order("date", { ascending: true });
 
-    if (data) setAgendamentos(data);
-    setLoading(false);
+      if (error) throw error;
+      if (data) setAgendamentos(data);
+    } catch (err) {
+      console.error("Erro ao carregar agendamentos:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, [supabase]);
 
   useEffect(() => { load(); }, [load]);
@@ -40,53 +47,69 @@ export function useAgendamentos() {
       updated_at: new Date().toISOString(),
     };
 
-    if (existingId) {
-      const { data } = await supabase
-        .from("agendamentos")
-        .update(payload)
-        .eq("id", existingId)
-        .select()
-        .single();
-      if (data) {
-        setAgendamentos((prev) => prev.map((a) => (a.id === existingId ? data : a)));
+    try {
+      if (existingId) {
+        const { data, error } = await supabase
+          .from("agendamentos")
+          .update(payload)
+          .eq("id", existingId)
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) {
+          setAgendamentos((prev) => prev.map((a) => (a.id === existingId ? data : a)));
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("agendamentos")
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) {
+          setAgendamentos((prev) => [...prev, data]);
+        }
       }
-    } else {
-      const { data } = await supabase
-        .from("agendamentos")
-        .insert(payload)
-        .select()
-        .single();
-      if (data) {
-        setAgendamentos((prev) => [...prev, data]);
-      }
+    } catch (err) {
+      console.error("Erro ao salvar agendamento:", err);
+      throw err;
     }
   }, [supabase]);
 
+  // Cancel preserves closer/produto/sdr for metrics history
   const cancel = useCallback(async (id: string, motivo: string) => {
-    const { data } = await supabase
-      .from("agendamentos")
-      .update({
-        cancelado: true,
-        cancel_motivo: motivo,
-        closer: "",
-        produto: "",
-        sdr: "",
-        status: "Livre",
-        motivo: "",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("agendamentos")
+        .update({
+          cancelado: true,
+          cancel_motivo: motivo,
+          status: "Livre",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
 
-    if (data) {
-      setAgendamentos((prev) => prev.map((a) => (a.id === id ? data : a)));
+      if (error) throw error;
+      if (data) {
+        setAgendamentos((prev) => prev.map((a) => (a.id === id ? data : a)));
+      }
+    } catch (err) {
+      console.error("Erro ao cancelar agendamento:", err);
+      throw err;
     }
   }, [supabase]);
 
   const remove = useCallback(async (id: string) => {
-    await supabase.from("agendamentos").delete().eq("id", id);
-    setAgendamentos((prev) => prev.filter((a) => a.id !== id));
+    try {
+      const { error } = await supabase.from("agendamentos").delete().eq("id", id);
+      if (error) throw error;
+      setAgendamentos((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error("Erro ao excluir agendamento:", err);
+      throw err;
+    }
   }, [supabase]);
 
   return { agendamentos, loading, upsert, cancel, remove, reload: load };
