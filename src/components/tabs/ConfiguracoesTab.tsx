@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import TagList from "@/components/TagList";
 import type { Settings, GroupConfig } from "@/lib/types";
 
@@ -13,8 +13,13 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
   const { closers, sdrs, produtos, motivos, config_h1, config_h2, horarios_h1, horarios_h2, horarios_h1_sab, horarios_h2_sab } = settings;
   const [newHour, setNewHour] = useState<Record<string, string>>({});
 
+  // Keep a ref so closures always read the latest settings
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   function updCfg(grp: "h1" | "h2", key: keyof GroupConfig, value: GroupConfig[keyof GroupConfig]) {
-    const cfg = grp === "h1" ? { ...config_h1 } : { ...config_h2 };
+    const s = settingsRef.current;
+    const cfg = grp === "h1" ? { ...s.config_h1 } : { ...s.config_h2 };
     (cfg as Record<string, unknown>)[key] = value;
     onUpdate(grp === "h1" ? { config_h1: cfg } : { config_h2: cfg });
   }
@@ -22,11 +27,10 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
   function addHour(key: "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab") {
     const val = (newHour[key] || "").trim();
     if (!val) return;
-    // Accept "10", "19", etc — validate it's a number 0-23
     const n = parseInt(val);
     if (isNaN(n) || n < 0 || n > 23) return;
     const h = String(n);
-    const current = settings[key];
+    const current = settingsRef.current[key];
     if (current.includes(h)) return;
     const updated = [...current, h].sort((a, b) => parseInt(a) - parseInt(b));
     onUpdate({ [key]: updated });
@@ -34,7 +38,7 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
   }
 
   function removeHour(key: "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab", h: string) {
-    onUpdate({ [key]: settings[key].filter((x) => x !== h) });
+    onUpdate({ [key]: settingsRef.current[key].filter((x) => x !== h) });
   }
 
   return (
@@ -174,11 +178,17 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               <div className="text-xs text-slate-400 mb-4">Slots :00 de cada horário.</div>
               <TagList
                 items={cfg.closers}
-                onRemove={(n) => updCfg(grp, "closers", cfg.closers.filter((c) => c !== n))}
+                onRemove={(n) => {
+                  const s = settingsRef.current;
+                  const currentCfg = grp === "h1" ? s.config_h1 : s.config_h2;
+                  updCfg(grp, "closers", currentCfg.closers.filter((c) => c !== n));
+                }}
                 onAdd={(n) => {
-                  if (!cfg.closers.includes(n)) {
-                    updCfg(grp, "closers", [...cfg.closers, n]);
-                    if (!closers.includes(n)) onUpdate({ closers: [...closers, n] });
+                  const s = settingsRef.current;
+                  const currentCfg = grp === "h1" ? s.config_h1 : s.config_h2;
+                  if (!currentCfg.closers.includes(n)) {
+                    updCfg(grp, "closers", [...currentCfg.closers, n]);
+                    if (!s.closers.includes(n)) onUpdate({ closers: [...s.closers, n] });
                   }
                 }}
                 placeholder="Nome do closer..."
@@ -246,9 +256,13 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
           <div className="text-xs text-slate-400 mb-4">{d}</div>
           <TagList
             items={items}
-            onRemove={(n) => onUpdate({ [key]: items.filter((s) => s !== n) })}
+            onRemove={(n) => {
+              const current = settingsRef.current[key] as string[];
+              onUpdate({ [key]: current.filter((s) => s !== n) });
+            }}
             onAdd={(n) => {
-              if (!items.includes(n)) onUpdate({ [key]: [...items, n] });
+              const current = settingsRef.current[key] as string[];
+              if (!current.includes(n)) onUpdate({ [key]: [...current, n] });
             }}
             placeholder="Adicionar..."
           />
