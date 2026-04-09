@@ -25,12 +25,13 @@ export default function TagList({ items, onRemove, onAdd, placeholder }: TagList
         {items.map((item) => (
           <span
             key={item}
-            className="group flex items-center gap-1.5 bg-gradient-to-b from-blue-50 to-blue-50/50 border border-blue-200/60 rounded-lg px-3 py-1.5 text-sm text-blue-700 font-medium transition-all hover:border-blue-300 hover:shadow-sm"
+            className="group flex items-center gap-2 bg-gradient-to-b from-blue-50 to-blue-50/50 border border-blue-200/60 rounded-lg pl-3 pr-1.5 py-1 text-sm text-blue-700 font-medium transition-all hover:border-blue-300 hover:shadow-sm"
           >
             {item}
             <button
               onClick={() => onRemove(item)}
-              className="text-blue-300 text-sm leading-none hover:text-red-500 transition-colors rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-50"
+              className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none"
+              title={`Remover ${item}`}
             >
               ×
             </button>
