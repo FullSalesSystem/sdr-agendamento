@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import TagList from "@/components/TagList";
 import type { Settings, GroupConfig } from "@/lib/types";
 
@@ -9,13 +9,30 @@ interface Props {
   onUpdate: (partial: Partial<Settings>) => void;
 }
 
-export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
+export default function ConfiguracoesTab({ settings: initialSettings, onUpdate }: Props) {
+  // Local state — source of truth for the UI
+  const [s, setS] = useState(initialSettings);
   const [newHour, setNewHour] = useState<Record<string, string>>({});
 
+  // Sync from parent when settings load from DB (initial load only)
+  useEffect(() => {
+    setS(initialSettings);
+  }, [initialSettings.id]);
+
+  // Helper: update local state AND notify parent
+  const apply = useCallback((partial: Partial<Settings>) => {
+    setS((prev) => ({ ...prev, ...partial }));
+    onUpdate(partial);
+  }, [onUpdate]);
+
   function updCfg(grp: "h1" | "h2", key: keyof GroupConfig, value: GroupConfig[keyof GroupConfig]) {
-    const cfg = grp === "h1" ? { ...settings.config_h1 } : { ...settings.config_h2 };
-    (cfg as Record<string, unknown>)[key] = value;
-    onUpdate(grp === "h1" ? { config_h1: cfg } : { config_h2: cfg });
+    setS((prev) => {
+      const cfg = grp === "h1" ? { ...prev.config_h1 } : { ...prev.config_h2 };
+      (cfg as Record<string, unknown>)[key] = value;
+      const partial = grp === "h1" ? { config_h1: cfg } : { config_h2: cfg };
+      onUpdate(partial);
+      return { ...prev, ...partial };
+    });
   }
 
   function addHour(key: "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab") {
@@ -24,22 +41,46 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
     const n = parseInt(val);
     if (isNaN(n) || n < 0 || n > 23) return;
     const h = String(n);
-    const current = settings[key];
-    if (current.includes(h)) return;
-    const updated = [...current, h].sort((a, b) => parseInt(a) - parseInt(b));
-    onUpdate({ [key]: updated });
+    setS((prev) => {
+      const current = prev[key];
+      if (current.includes(h)) return prev;
+      const updated = [...current, h].sort((a, b) => parseInt(a) - parseInt(b));
+      onUpdate({ [key]: updated });
+      return { ...prev, [key]: updated };
+    });
     setNewHour((p) => ({ ...p, [key]: "" }));
   }
 
   function removeHour(key: "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab", h: string) {
-    onUpdate({ [key]: settings[key].filter((x: string) => x !== h) });
+    setS((prev) => {
+      const updated = prev[key].filter((x: string) => x !== h);
+      onUpdate({ [key]: updated });
+      return { ...prev, [key]: updated };
+    });
   }
 
-  const { closers, sdrs, produtos, motivos, config_h1, config_h2, horarios_h1, horarios_h2, horarios_h1_sab, horarios_h2_sab } = settings;
+  function removeGlobalItem(key: "closers" | "sdrs" | "produtos" | "motivos", item: string) {
+    setS((prev) => {
+      const updated = (prev[key] as string[]).filter((x) => x !== item);
+      onUpdate({ [key]: updated });
+      return { ...prev, [key]: updated };
+    });
+  }
+
+  function addGlobalItem(key: "closers" | "sdrs" | "produtos" | "motivos", item: string) {
+    setS((prev) => {
+      const current = prev[key] as string[];
+      if (current.includes(item)) return prev;
+      const updated = [...current, item];
+      onUpdate({ [key]: updated });
+      return { ...prev, [key]: updated };
+    });
+  }
+
+  const { closers, sdrs, produtos, motivos, config_h1, config_h2, horarios_h1, horarios_h2, horarios_h1_sab, horarios_h2_sab } = s;
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* H1 / H2 groups */}
       {(["h1", "h2"] as const).map((grp) => {
         const cfg = grp === "h1" ? config_h1 : config_h2;
         const label = grp === "h1" ? "Horário 1" : "Horário 2";
@@ -51,7 +92,6 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
 
         return (
           <div key={grp} className="space-y-3">
-            {/* Group header */}
             <div className={`bg-gradient-to-r ${gradient} rounded-2xl p-4 shadow-sm`}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-bold text-white text-sm">
@@ -66,100 +106,52 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               </div>
             </div>
 
-            {/* Hours management - Weekday */}
+            {/* Weekday hours */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-1">
                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="font-bold text-sm text-slate-800">Horários — Seg a Sex</div>
-                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">
-                  {hours.length} horários
-                </span>
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">{hours.length} horários</span>
               </div>
               <div className="text-xs text-slate-400 mb-3">Cada horário gera slots :00 (closers) e :10 (overbook).</div>
               <div className="flex flex-wrap gap-2 mb-3">
                 {hours.map((h) => (
-                  <span
-                    key={h}
-                    className="group flex items-center gap-1.5 bg-gradient-to-b from-blue-50 to-blue-50/50 border border-blue-200/60 rounded-lg px-3 py-1.5 text-sm text-blue-700 font-bold tabular-nums transition-all hover:border-blue-300 hover:shadow-sm"
-                  >
+                  <span key={h} className="group flex items-center gap-1.5 bg-gradient-to-b from-blue-50 to-blue-50/50 border border-blue-200/60 rounded-lg px-3 py-1.5 text-sm text-blue-700 font-bold tabular-nums">
                     {h}:00
-                    <button
-                      onClick={() => removeHour(hoursKey, h)}
-                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none"
-                    >
-                      ×
-                    </button>
+                    <button onClick={() => removeHour(hoursKey, h)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none">×</button>
                   </span>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={newHour[hoursKey] || ""}
-                  onChange={(e) => setNewHour((p) => ({ ...p, [hoursKey]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === "Enter") addHour(hoursKey); }}
-                  placeholder="Ex: 19"
-                  className="w-24 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-slate-900 tabular-nums transition-all"
-                />
-                <button
-                  onClick={() => addHour(hoursKey)}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm shadow-blue-600/20"
-                >
-                  + Horário
-                </button>
+                <input type="number" min={0} max={23} value={newHour[hoursKey] || ""} onChange={(e) => setNewHour((p) => ({ ...p, [hoursKey]: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") addHour(hoursKey); }} placeholder="Ex: 19" className="w-24 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-slate-900 tabular-nums transition-all" />
+                <button onClick={() => addHour(hoursKey)} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm shadow-blue-600/20">+ Horário</button>
               </div>
             </div>
 
-            {/* Hours management - Saturday */}
+            {/* Saturday hours */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-1">
                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="font-bold text-sm text-slate-800">Horários — Sábado</div>
-                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">
-                  {hoursSab.length} horários
-                </span>
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">{hoursSab.length} horários</span>
               </div>
               <div className="text-xs text-slate-400 mb-3">Horários do sábado (geralmente reduzido).</div>
               <div className="flex flex-wrap gap-2 mb-3">
                 {hoursSab.length === 0 && <span className="text-xs text-slate-400 italic">Nenhum horário no sábado</span>}
                 {hoursSab.map((h) => (
-                  <span
-                    key={h}
-                    className="group flex items-center gap-1.5 bg-gradient-to-b from-amber-50 to-amber-50/50 border border-amber-200/60 rounded-lg px-3 py-1.5 text-sm text-amber-700 font-bold tabular-nums transition-all hover:border-amber-300 hover:shadow-sm"
-                  >
+                  <span key={h} className="group flex items-center gap-1.5 bg-gradient-to-b from-amber-50 to-amber-50/50 border border-amber-200/60 rounded-lg px-3 py-1.5 text-sm text-amber-700 font-bold tabular-nums">
                     {h}:00
-                    <button
-                      onClick={() => removeHour(hoursSabKey, h)}
-                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none"
-                    >
-                      ×
-                    </button>
+                    <button onClick={() => removeHour(hoursSabKey, h)} className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none">×</button>
                   </span>
                 ))}
               </div>
               <div className="flex gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={newHour[hoursSabKey] || ""}
-                  onChange={(e) => setNewHour((p) => ({ ...p, [hoursSabKey]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === "Enter") addHour(hoursSabKey); }}
-                  placeholder="Ex: 10"
-                  className="w-24 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-slate-900 tabular-nums transition-all"
-                />
-                <button
-                  onClick={() => addHour(hoursSabKey)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-600 text-white font-semibold text-sm hover:bg-amber-700 transition-all shadow-sm shadow-amber-600/20"
-                >
-                  + Horário
-                </button>
+                <input type="number" min={0} max={23} value={newHour[hoursSabKey] || ""} onChange={(e) => setNewHour((p) => ({ ...p, [hoursSabKey]: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") addHour(hoursSabKey); }} placeholder="Ex: 10" className="w-24 text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-slate-900 tabular-nums transition-all" />
+                <button onClick={() => addHour(hoursSabKey)} className="px-4 py-2.5 rounded-xl bg-amber-600 text-white font-semibold text-sm hover:bg-amber-700 transition-all shadow-sm shadow-amber-600/20">+ Horário</button>
               </div>
             </div>
 
@@ -175,13 +167,13 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               <TagList
                 items={cfg.closers}
                 onRemove={(n) => {
-                  const newClosers = settings[grp === "h1" ? "config_h1" : "config_h2"].closers.filter((c) => c !== n);
+                  const newClosers = cfg.closers.filter((c) => c !== n);
                   updCfg(grp, "closers", newClosers);
                 }}
                 onAdd={(n) => {
                   if (!cfg.closers.includes(n)) {
                     updCfg(grp, "closers", [...cfg.closers, n]);
-                    if (!closers.includes(n)) onUpdate({ closers: [...closers, n] });
+                    if (!closers.includes(n)) apply({ closers: [...closers, n] });
                   }
                 }}
                 placeholder="Nome do closer..."
@@ -198,38 +190,24 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               </div>
               <div className="text-xs text-slate-400 mb-4">Quantidade de linhas OB nos slots :10.</div>
               <div className="flex items-center gap-4 bg-slate-50 rounded-xl p-3">
-                <button
-                  onClick={() => updCfg(grp, "overbook", Math.max(0, cfg.overbook - 1))}
-                  className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-lg font-bold hover:bg-slate-100 transition-all shadow-sm"
-                >
-                  −
-                </button>
+                <button onClick={() => updCfg(grp, "overbook", Math.max(0, cfg.overbook - 1))} className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-lg font-bold hover:bg-slate-100 transition-all shadow-sm">−</button>
                 <div className="text-center flex-1">
                   <span className="text-3xl font-bold text-blue-600 tabular-nums">{cfg.overbook}</span>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    linha{cfg.overbook !== 1 ? "s" : ""} OB por horário
-                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">linha{cfg.overbook !== 1 ? "s" : ""} OB por horário</div>
                 </div>
-                <button
-                  onClick={() => updCfg(grp, "overbook", cfg.overbook + 1)}
-                  className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-lg font-bold hover:bg-slate-100 transition-all shadow-sm"
-                >
-                  +
-                </button>
+                <button onClick={() => updCfg(grp, "overbook", cfg.overbook + 1)} className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-lg font-bold hover:bg-slate-100 transition-all shadow-sm">+</button>
               </div>
             </div>
           </div>
         );
       })}
 
-      {/* Divider */}
       <div className="flex items-center gap-3 py-2">
         <div className="flex-1 h-px bg-slate-200" />
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Listas globais</span>
         <div className="flex-1 h-px bg-slate-200" />
       </div>
 
-      {/* Global lists */}
       {[
         { t: "SDRs", d: "Lista global de SDRs.", items: sdrs, key: "sdrs" as const, icon: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" },
         { t: "Produtos", d: "Produtos disponíveis.", items: produtos, key: "produtos" as const, icon: "M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" },
@@ -242,20 +220,13 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
             </svg>
             <div className="font-bold text-sm text-slate-800">{t}</div>
-            <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">
-              {items.length}
-            </span>
+            <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 ml-auto">{items.length}</span>
           </div>
           <div className="text-xs text-slate-400 mb-4">{d}</div>
           <TagList
             items={items}
-            onRemove={(n) => {
-              onUpdate({ [key]: settings[key].filter((s: string) => s !== n) });
-            }}
-            onAdd={(n) => {
-              const current = settings[key] as string[];
-              if (!current.includes(n)) onUpdate({ [key]: [...current, n] });
-            }}
+            onRemove={(n) => removeGlobalItem(key, n)}
+            onAdd={(n) => addGlobalItem(key, n)}
             placeholder="Adicionar..."
           />
         </div>
