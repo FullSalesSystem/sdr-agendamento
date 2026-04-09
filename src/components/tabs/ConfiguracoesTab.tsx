@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import TagList from "@/components/TagList";
 import type { Settings, GroupConfig } from "@/lib/types";
 
@@ -10,16 +10,10 @@ interface Props {
 }
 
 export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
-  const { closers, sdrs, produtos, motivos, config_h1, config_h2, horarios_h1, horarios_h2, horarios_h1_sab, horarios_h2_sab } = settings;
   const [newHour, setNewHour] = useState<Record<string, string>>({});
 
-  // Keep a ref so closures always read the latest settings
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
   function updCfg(grp: "h1" | "h2", key: keyof GroupConfig, value: GroupConfig[keyof GroupConfig]) {
-    const s = settingsRef.current;
-    const cfg = grp === "h1" ? { ...s.config_h1 } : { ...s.config_h2 };
+    const cfg = grp === "h1" ? { ...settings.config_h1 } : { ...settings.config_h2 };
     (cfg as Record<string, unknown>)[key] = value;
     onUpdate(grp === "h1" ? { config_h1: cfg } : { config_h2: cfg });
   }
@@ -30,7 +24,7 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
     const n = parseInt(val);
     if (isNaN(n) || n < 0 || n > 23) return;
     const h = String(n);
-    const current = settingsRef.current[key];
+    const current = settings[key];
     if (current.includes(h)) return;
     const updated = [...current, h].sort((a, b) => parseInt(a) - parseInt(b));
     onUpdate({ [key]: updated });
@@ -38,8 +32,10 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
   }
 
   function removeHour(key: "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab", h: string) {
-    onUpdate({ [key]: settingsRef.current[key].filter((x) => x !== h) });
+    onUpdate({ [key]: settings[key].filter((x: string) => x !== h) });
   }
+
+  const { closers, sdrs, produtos, motivos, config_h1, config_h2, horarios_h1, horarios_h2, horarios_h1_sab, horarios_h2_sab } = settings;
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -91,7 +87,7 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
                     {h}:00
                     <button
                       onClick={() => removeHour(hoursKey, h)}
-                      className="text-blue-300 text-sm leading-none hover:text-red-500 transition-colors rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-50"
+                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none"
                     >
                       ×
                     </button>
@@ -140,7 +136,7 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
                     {h}:00
                     <button
                       onClick={() => removeHour(hoursSabKey, h)}
-                      className="text-amber-300 text-sm leading-none hover:text-red-500 transition-colors rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-50"
+                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors rounded-md w-6 h-6 flex items-center justify-center text-lg leading-none"
                     >
                       ×
                     </button>
@@ -179,16 +175,13 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
               <TagList
                 items={cfg.closers}
                 onRemove={(n) => {
-                  const s = settingsRef.current;
-                  const currentCfg = grp === "h1" ? s.config_h1 : s.config_h2;
-                  updCfg(grp, "closers", currentCfg.closers.filter((c) => c !== n));
+                  const newClosers = settings[grp === "h1" ? "config_h1" : "config_h2"].closers.filter((c) => c !== n);
+                  updCfg(grp, "closers", newClosers);
                 }}
                 onAdd={(n) => {
-                  const s = settingsRef.current;
-                  const currentCfg = grp === "h1" ? s.config_h1 : s.config_h2;
-                  if (!currentCfg.closers.includes(n)) {
-                    updCfg(grp, "closers", [...currentCfg.closers, n]);
-                    if (!s.closers.includes(n)) onUpdate({ closers: [...s.closers, n] });
+                  if (!cfg.closers.includes(n)) {
+                    updCfg(grp, "closers", [...cfg.closers, n]);
+                    if (!closers.includes(n)) onUpdate({ closers: [...closers, n] });
                   }
                 }}
                 placeholder="Nome do closer..."
@@ -257,11 +250,10 @@ export default function ConfiguracoesTab({ settings, onUpdate }: Props) {
           <TagList
             items={items}
             onRemove={(n) => {
-              const current = settingsRef.current[key] as string[];
-              onUpdate({ [key]: current.filter((s) => s !== n) });
+              onUpdate({ [key]: settings[key].filter((s: string) => s !== n) });
             }}
             onAdd={(n) => {
-              const current = settingsRef.current[key] as string[];
+              const current = settings[key] as string[];
               if (!current.includes(n)) onUpdate({ [key]: [...current, n] });
             }}
             placeholder="Adicionar..."

@@ -129,13 +129,8 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleUpdateSettings(partial: Parameters<typeof updateSettings>[0]) {
-    try {
-      await updateSettings(partial);
-      toast("Configuração salva");
-    } catch {
-      toast("Erro ao salvar configuração", "error");
-    }
+  function handleUpdateSettings(partial: Parameters<typeof updateSettings>[0]) {
+    updateSettings(partial);
   }
 
   const years = [now.getFullYear(), now.getFullYear() + 1];

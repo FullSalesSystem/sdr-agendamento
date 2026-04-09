@@ -25,11 +25,11 @@ const defaults: Omit<Settings, "id" | "user_id"> = {
 export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
+  const supabaseRef = useRef(createClient());
+  const idRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const supabase = supabaseRef.current;
     async function load() {
       try {
         const { data, error } = await supabase
@@ -41,6 +41,7 @@ export function useSettings() {
         if (error && error.code !== "PGRST116") throw error;
 
         if (data) {
+          idRef.current = data.id;
           setSettings({
             ...data,
             config_h1: data.config_h1 as GroupConfig,
@@ -58,6 +59,7 @@ export function useSettings() {
             .single();
           if (insertErr) throw insertErr;
           if (created) {
+            idRef.current = created.id;
             setSettings({
               ...created,
               config_h1: created.config_h1 as GroupConfig,
@@ -76,27 +78,27 @@ export function useSettings() {
       }
     }
     load();
-  }, [supabase]);
+  }, []);
 
-  const update = useCallback(async (partial: Partial<Omit<Settings, "id" | "user_id">>) => {
-    const current = settingsRef.current;
-    if (!current) return;
-    const previous = { ...current };
-    const updated = { ...current, ...partial };
-    setSettings(updated);
+  const update = useCallback((partial: Partial<Omit<Settings, "id" | "user_id">>) => {
+    // Optimistic update — always uses functional updater for latest state
+    setSettings((prev) => {
+      if (!prev) return prev;
+      return { ...prev, ...partial };
+    });
 
-    try {
-      const { error } = await supabase
+    // Fire-and-forget DB update
+    const id = idRef.current;
+    if (id) {
+      supabaseRef.current
         .from("settings")
         .update(partial)
-        .eq("id", current.id);
-      if (error) throw error;
-    } catch (err) {
-      setSettings(previous);
-      console.error("Erro ao salvar configurações:", err);
-      throw err;
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao salvar configurações:", error);
+        });
     }
-  }, [supabase]);
+  }, []);
 
   return { settings: settings ?? (defaults as Settings), loading, update };
 }
