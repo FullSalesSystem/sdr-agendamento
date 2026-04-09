@@ -2,12 +2,14 @@
 
 import { useMemo } from "react";
 import Badge from "@/components/Badge";
-import type { Agendamento, GroupConfig } from "@/lib/types";
+import type { Agendamento, GroupConfig, Settings } from "@/lib/types";
 import {
   weekOf, monthDays, toWeeks, orderedHours, slotInfo,
   fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay,
 } from "@/lib/utils";
 import { DSEM } from "@/lib/constants";
+
+type HoursConfig = Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">;
 
 interface Props {
   selM: number;
@@ -18,13 +20,14 @@ interface Props {
   produtos: string[];
   configH1: GroupConfig;
   configH2: GroupConfig;
+  hoursConfig: HoursConfig;
   onSelectWeek: (d: Date) => void;
   onOpenAdd: (date: Date, hour?: string) => void;
   onOpenEdit: (date: Date, ag: Agendamento) => void;
 }
 
 export default function AgendamentoTab({
-  selM, selY, wDate, agendamentos, produtos, configH1, configH2,
+  selM, selY, wDate, agendamentos, produtos, configH1, configH2, hoursConfig,
   onSelectWeek, onOpenAdd, onOpenEdit,
 }: Props) {
   const week = useMemo(() => weekOf(wDate), [wDate]);
@@ -58,7 +61,7 @@ export default function AgendamentoTab({
   }
 
   function renderSlots(date: Date, h: string, dmap: Record<string, Agendamento[]>) {
-    const { isOB, grp } = slotInfo(date, h);
+    const { isOB, grp } = slotInfo(date, h, hoursConfig);
     const cfg = getConfig(grp);
     const slots = dmap[h] || [];
     const rows: React.ReactNode[] = [];
@@ -211,7 +214,7 @@ export default function AgendamentoTab({
       <div className="grid grid-cols-7 gap-2">
         {week.map((date) => {
           const blk = isSun(date);
-          const hrs = orderedHours(date);
+          const hrs = orderedHours(date, hoursConfig);
           const dm = dayMap(date);
           const today = isToday(date);
 
@@ -255,7 +258,7 @@ export default function AgendamentoTab({
               ) : (
                 <div className="p-1.5">
                   {hrs.map((h) => {
-                    const { isOB } = slotInfo(date, h);
+                    const { isOB } = slotInfo(date, h, hoursConfig);
                     return (
                       <div key={h}>
                         <div className={`text-[10px] font-bold px-1 pt-1.5 pb-0.5 mt-0.5 flex items-center gap-1.5 ${isOB ? "text-slate-400" : "text-blue-600"}`}>
@@ -281,7 +284,7 @@ export default function AgendamentoTab({
 
                     let totalSlots = 0;
                     hrs.forEach((h) => {
-                      const { isOB, grp } = slotInfo(date, h);
+                      const { isOB, grp } = slotInfo(date, h, hoursConfig);
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });

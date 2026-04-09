@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Settings, GroupConfig } from "@/lib/types";
 import {
   DEFAULT_CLOSERS, DEFAULT_SDRS, DEFAULT_PRODUTOS, DEFAULT_MOTIVOS,
-  DEFAULT_CONFIG_H1, DEFAULT_CONFIG_H2, SHARED_USER_ID,
+  DEFAULT_CONFIG_H1, DEFAULT_CONFIG_H2, DEFAULT_H1, DEFAULT_H2,
+  DEFAULT_H1_SAB, DEFAULT_H2_SAB, SHARED_USER_ID,
 } from "@/lib/constants";
 
 const defaults: Omit<Settings, "id" | "user_id"> = {
@@ -15,6 +16,10 @@ const defaults: Omit<Settings, "id" | "user_id"> = {
   motivos: DEFAULT_MOTIVOS,
   config_h1: DEFAULT_CONFIG_H1,
   config_h2: DEFAULT_CONFIG_H2,
+  horarios_h1: DEFAULT_H1,
+  horarios_h2: DEFAULT_H2,
+  horarios_h1_sab: DEFAULT_H1_SAB,
+  horarios_h2_sab: DEFAULT_H2_SAB,
 };
 
 export function useSettings() {
@@ -35,9 +40,12 @@ export function useSettings() {
           ...data,
           config_h1: data.config_h1 as GroupConfig,
           config_h2: data.config_h2 as GroupConfig,
+          horarios_h1: data.horarios_h1 ?? DEFAULT_H1,
+          horarios_h2: data.horarios_h2 ?? DEFAULT_H2,
+          horarios_h1_sab: data.horarios_h1_sab ?? DEFAULT_H1_SAB,
+          horarios_h2_sab: data.horarios_h2_sab ?? DEFAULT_H2_SAB,
         });
       } else {
-        // Auto-create settings row
         const { data: created } = await supabase
           .from("settings")
           .insert({ user_id: SHARED_USER_ID })
@@ -48,6 +56,10 @@ export function useSettings() {
             ...created,
             config_h1: created.config_h1 as GroupConfig,
             config_h2: created.config_h2 as GroupConfig,
+            horarios_h1: created.horarios_h1 ?? DEFAULT_H1,
+            horarios_h2: created.horarios_h2 ?? DEFAULT_H2,
+            horarios_h1_sab: created.horarios_h1_sab ?? DEFAULT_H1_SAB,
+            horarios_h2_sab: created.horarios_h2_sab ?? DEFAULT_H2_SAB,
           });
         }
       }
@@ -58,7 +70,7 @@ export function useSettings() {
 
   const update = useCallback(async (partial: Partial<Omit<Settings, "id" | "user_id">>) => {
     if (!settings) return;
-    const updated = { ...settings, ...partial, updated_at: new Date().toISOString() };
+    const updated = { ...settings, ...partial };
     setSettings(updated);
 
     await supabase

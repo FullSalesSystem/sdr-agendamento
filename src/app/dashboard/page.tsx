@@ -65,7 +65,7 @@ export default function DashboardPage() {
   }, []);
 
   function openAdd(date: Date, hour?: string) {
-    setForm({ ...emptyForm(), horario: hour || orderedHours(date)[0] });
+    setForm({ ...emptyForm(), horario: hour || orderedHours(date, settings)[0] });
     setModal({ mode: "add", date });
   }
 
@@ -199,6 +199,7 @@ export default function DashboardPage() {
             produtos={settings.produtos}
             configH1={settings.config_h1}
             configH2={settings.config_h2}
+            hoursConfig={settings}
             onSelectWeek={selWeek}
             onOpenAdd={openAdd}
             onOpenEdit={openEdit}
@@ -236,6 +237,7 @@ export default function DashboardPage() {
           produtos={settings.produtos}
           sdrs={settings.sdrs}
           motivos={settings.motivos}
+          hoursConfig={settings}
           onSave={handleSave}
           onDelete={modal.mode === "edit" ? handleDeleteClick : undefined}
           onClose={() => setModal(null)}

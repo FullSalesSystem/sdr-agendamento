@@ -7,10 +7,11 @@ export const DSEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export const STATUS_LIST = ["Agendamento", "Reagendamento", "Bloqueado", "Livre"];
 
-export const H1_BASE = ["10", "13", "15", "17"];
-export const H2_BASE = ["11", "14", "16", "18"];
-export const H1_SAB = ["10", "13"];
-export const H2_SAB = ["11", "14"];
+// Default hours (used as fallback and initial config)
+export const DEFAULT_H1 = ["10", "13", "15", "17", "19"];
+export const DEFAULT_H2 = ["11", "14", "16", "18"];
+export const DEFAULT_H1_SAB = ["10", "13"];
+export const DEFAULT_H2_SAB = ["11", "14"];
 
 export const TABS = [
   "Agendamento",

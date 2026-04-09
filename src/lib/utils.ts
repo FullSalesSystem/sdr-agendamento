@@ -1,4 +1,5 @@
-import { H1_BASE, H1_SAB, H2_BASE, H2_SAB } from "./constants";
+import { DEFAULT_H1, DEFAULT_H1_SAB, DEFAULT_H2, DEFAULT_H2_SAB } from "./constants";
+import type { Settings } from "./types";
 
 export function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -60,18 +61,33 @@ export function toWeeks(days: Date[]): (Date | null)[][] {
   return W;
 }
 
-export function orderedHours(date: Date): string[] {
+/** Get the H1 and H2 hour lists for a given date, using settings */
+export function getHoursForDate(date: Date, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">) {
   const sat = isSat(date);
-  const a = [...(sat ? H1_SAB : H1_BASE), ...(sat ? H2_SAB : H2_BASE)];
-  return [...a.map((h) => h + ":00"), ...a.map((h) => h + ":10")].sort();
+  const h1 = sat
+    ? (settings?.horarios_h1_sab ?? DEFAULT_H1_SAB)
+    : (settings?.horarios_h1 ?? DEFAULT_H1);
+  const h2 = sat
+    ? (settings?.horarios_h2_sab ?? DEFAULT_H2_SAB)
+    : (settings?.horarios_h2 ?? DEFAULT_H2);
+  return { h1, h2 };
 }
 
-export function slotInfo(date: Date, h: string): { isOB: boolean; grp: "h1" | "h2" } {
-  const sat = isSat(date);
+/** All hours for a date sorted chronologically (:00 and :10 for each) */
+export function orderedHours(date: Date, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">): string[] {
+  const { h1, h2 } = getHoursForDate(date, settings);
+  const all = [...h1, ...h2];
+  // Each base hour produces :00 (closer) and :10 (overbook)
+  return [...all.map((h) => h + ":00"), ...all.map((h) => h + ":10")].sort();
+}
+
+/** Determine if a slot is OB and which group (h1/h2) it belongs to */
+export function slotInfo(date: Date, h: string, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">): { isOB: boolean; grp: "h1" | "h2" } {
+  const { h1 } = getHoursForDate(date, settings);
   const [hh, mm] = h.split(":");
   return {
     isOB: mm === "10",
-    grp: (sat ? H1_SAB : H1_BASE).includes(hh) ? "h1" : "h2",
+    grp: h1.includes(hh) ? "h1" : "h2",
   };
 }
 

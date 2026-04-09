@@ -24,6 +24,10 @@ export interface Settings {
   motivos: string[];
   config_h1: GroupConfig;
   config_h2: GroupConfig;
+  horarios_h1: string[];      // e.g. ["10","13","15","17","19"]
+  horarios_h2: string[];      // e.g. ["11","14","16","18"]
+  horarios_h1_sab: string[];  // e.g. ["10","13"]
+  horarios_h2_sab: string[];  // e.g. ["11","14"]
 }
 
 export interface GroupConfig {
