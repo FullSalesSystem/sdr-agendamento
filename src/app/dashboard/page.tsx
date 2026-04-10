@@ -227,13 +227,16 @@ export default function DashboardPage() {
     setShowSaveModal(true);
   }
 
-  function handleConfirmSave(_from: "today" | "tomorrow") {
+  async function handleConfirmSave(_from: "today" | "tomorrow") {
     if (!pendingConfig) return;
-    // Save settings — existing appointments are never modified
-    updateSettings(pendingConfig);
     setShowSaveModal(false);
     setPendingConfig(null);
-    toast("Configurações salvas");
+    try {
+      await updateSettings(pendingConfig);
+      toast("Configurações salvas");
+    } catch {
+      toast("Erro ao salvar — verifique o console e desative o RLS no Supabase.", "error");
+    }
   }
 
   const years = [now.getFullYear(), now.getFullYear() + 1];
