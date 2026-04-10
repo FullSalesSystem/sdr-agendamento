@@ -6,7 +6,7 @@ import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useToast } from "@/components/Toast";
 import { MESES, TABS } from "@/lib/constants";
 import type { TabName } from "@/lib/constants";
-import type { Agendamento, AgendamentoForm } from "@/lib/types";
+import type { Agendamento, AgendamentoForm, Settings } from "@/lib/types";
 import { orderedHours } from "@/lib/utils";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import DeleteModal from "@/components/DeleteModal";
@@ -36,9 +36,100 @@ const emptyForm = (): AgendamentoForm => ({
   obs: "",
 });
 
+const CONFIG_PIN = "30218";
+const SESSION_KEY = "config_unlocked";
+
+function SaveConfirmModal({ onConfirm, onClose }: { onConfirm: (from: "today" | "tomorrow") => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-96 flex flex-col gap-4">
+        <div>
+          <div className="font-bold text-slate-800 text-base">Aplicar alterações</div>
+          <div className="text-sm text-slate-500 mt-1">
+            Agendamentos já preenchidos não serão alterados. Dias anteriores não serão afetados.
+            <br />A partir de quando as novas configurações devem valer?
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => onConfirm("today")}
+            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all"
+          >
+            A partir de hoje
+          </button>
+          <button
+            onClick={() => onConfirm("tomorrow")}
+            className="w-full py-3 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-sm hover:bg-indigo-100 transition-all"
+          >
+            A partir de amanhã
+          </button>
+        </div>
+        <button onClick={onClose} className="text-sm text-slate-400 hover:text-slate-600 transition-colors text-center">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PinModal({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (pin === CONFIG_PIN) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      onSuccess();
+    } else {
+      setError(true);
+      setPin("");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-80 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+          </div>
+          <div>
+            <div className="font-bold text-slate-800">Área restrita</div>
+            <div className="text-xs text-slate-400">Digite o PIN para acessar</div>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="password"
+            inputMode="numeric"
+            autoFocus
+            value={pin}
+            onChange={(e) => { setPin(e.target.value); setError(false); }}
+            placeholder="PIN"
+            className={`w-full text-center text-xl tracking-widest border rounded-xl px-4 py-3 outline-none transition-all ${error ? "border-red-400 bg-red-50 focus:ring-2 focus:ring-red-300" : "border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"}`}
+          />
+          {error && <p className="text-xs text-red-500 text-center">PIN incorreto. Tente novamente.</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
+              Cancelar
+            </button>
+            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm">
+              Entrar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const now = new Date();
   const [tab, setTab] = useState<TabName>("Agendamento");
+  const [showPinModal, setShowPinModal] = useState(false);
   const [selM, setSelM] = useState(now.getMonth());
   const [selY, setSelY] = useState(now.getFullYear());
   const [wDate, setWDate] = useState(now);
@@ -50,6 +141,8 @@ export default function DashboardPage() {
   const [modal, setModal] = useState<{ mode: "add" | "edit"; date: Date; agId?: string } | null>(null);
   const [form, setForm] = useState<AgendamentoForm>(emptyForm());
   const [delModal, setDelModal] = useState<{ agId: string; grace: boolean } | null>(null);
+  const [pendingConfig, setPendingConfig] = useState<Partial<Omit<Settings, "id" | "user_id">> | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Filter: exclude canceled from month metrics
   const monthAgs = useMemo(() => {
@@ -129,8 +222,18 @@ export default function DashboardPage() {
     }
   }
 
-  function handleUpdateSettings(partial: Parameters<typeof updateSettings>[0]) {
-    updateSettings(partial);
+  function handleConfigSave(newCfg: Partial<Omit<Settings, "id" | "user_id">>) {
+    setPendingConfig(newCfg);
+    setShowSaveModal(true);
+  }
+
+  function handleConfirmSave(_from: "today" | "tomorrow") {
+    if (!pendingConfig) return;
+    // Save settings — existing appointments are never modified
+    updateSettings(pendingConfig);
+    setShowSaveModal(false);
+    setPendingConfig(null);
+    toast("Configurações salvas");
   }
 
   const years = [now.getFullYear(), now.getFullYear() + 1];
@@ -193,7 +296,13 @@ export default function DashboardPage() {
         {TABS.map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              if (t === "Configurações" && !sessionStorage.getItem(SESSION_KEY)) {
+                setShowPinModal(true);
+              } else {
+                setTab(t);
+              }
+            }}
             className={`group flex items-center gap-2 px-3 sm:px-4 py-3.5 text-sm whitespace-nowrap border-b-2 transition-all duration-200 ${
               tab === t
                 ? "font-semibold text-blue-600 border-blue-600 bg-blue-50/50"
@@ -247,9 +356,25 @@ export default function DashboardPage() {
         )}
 
         {tab === "Configurações" && (
-          <ConfiguracoesTab settings={settings} onUpdate={handleUpdateSettings} />
+          <ConfiguracoesTab settings={settings} onSave={handleConfigSave} />
         )}
       </div>
+
+      {/* Save Confirm Modal */}
+      {showSaveModal && (
+        <SaveConfirmModal
+          onConfirm={handleConfirmSave}
+          onClose={() => { setShowSaveModal(false); setPendingConfig(null); }}
+        />
+      )}
+
+      {/* PIN Modal */}
+      {showPinModal && (
+        <PinModal
+          onSuccess={() => { setShowPinModal(false); setTab("Configurações"); }}
+          onClose={() => setShowPinModal(false)}
+        />
+      )}
 
       {/* Agendamento Modal */}
       {modal && (

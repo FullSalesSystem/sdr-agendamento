@@ -52,22 +52,9 @@ export function useSettings() {
             horarios_h2_sab: data.horarios_h2_sab ?? DEFAULT_H2_SAB,
           });
         } else {
-          // No settings row — create one without FK constraint
           const { data: created, error: insertErr } = await supabase
             .from("settings")
-            .insert({
-              user_id: SHARED_USER_ID,
-              closers: DEFAULT_CLOSERS,
-              sdrs: DEFAULT_SDRS,
-              produtos: DEFAULT_PRODUTOS,
-              motivos: DEFAULT_MOTIVOS,
-              config_h1: DEFAULT_CONFIG_H1,
-              config_h2: DEFAULT_CONFIG_H2,
-              horarios_h1: DEFAULT_H1,
-              horarios_h2: DEFAULT_H2,
-              horarios_h1_sab: DEFAULT_H1_SAB,
-              horarios_h2_sab: DEFAULT_H2_SAB,
-            })
+            .insert({ user_id: SHARED_USER_ID })
             .select()
             .single();
           if (insertErr) throw insertErr;
@@ -94,27 +81,23 @@ export function useSettings() {
   }, []);
 
   const update = useCallback((partial: Partial<Omit<Settings, "id" | "user_id">>) => {
-    // Optimistic: update local state immediately
+    // Optimistic update — always uses functional updater for latest state
     setSettings((prev) => {
       if (!prev) return prev;
       return { ...prev, ...partial };
     });
 
-    // Persist to DB
+    // Fire-and-forget DB update
     const id = idRef.current;
-    if (!id) {
-      console.warn("[useSettings] No settings ID — cannot persist");
-      return;
+    if (id) {
+      supabaseRef.current
+        .from("settings")
+        .update(partial)
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao salvar configurações:", error);
+        });
     }
-    supabaseRef.current
-      .from("settings")
-      .update(partial)
-      .eq("id", id)
-      .then(({ error }) => {
-        if (error) {
-          console.error("[useSettings] DB update FAILED:", error.message, error.details, error.hint);
-        }
-      });
   }, []);
 
   return { settings: settings ?? (defaults as Settings), loading, update };

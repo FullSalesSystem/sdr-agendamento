@@ -61,20 +61,18 @@ export function toWeeks(days: Date[]): (Date | null)[][] {
   return W;
 }
 
-/** Get the H1 and H2 hour lists for a given date, using settings */
-export function getHoursForDate(date: Date, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">) {
+type HoursSettings = Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">;
+
+/** Get the H1 and H2 hour lists for a given date, using settings. */
+export function getHoursForDate(date: Date, settings?: HoursSettings) {
   const sat = isSat(date);
-  const h1 = sat
-    ? (settings?.horarios_h1_sab ?? DEFAULT_H1_SAB)
-    : (settings?.horarios_h1 ?? DEFAULT_H1);
-  const h2 = sat
-    ? (settings?.horarios_h2_sab ?? DEFAULT_H2_SAB)
-    : (settings?.horarios_h2 ?? DEFAULT_H2);
+  const h1 = sat ? (settings?.horarios_h1_sab ?? DEFAULT_H1_SAB) : (settings?.horarios_h1 ?? DEFAULT_H1);
+  const h2 = sat ? (settings?.horarios_h2_sab ?? DEFAULT_H2_SAB) : (settings?.horarios_h2 ?? DEFAULT_H2);
   return { h1, h2 };
 }
 
 /** All hours for a date sorted chronologically (:00 and :10 for each) */
-export function orderedHours(date: Date, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">): string[] {
+export function orderedHours(date: Date, settings?: HoursSettings): string[] {
   const { h1, h2 } = getHoursForDate(date, settings);
   const all = [...h1, ...h2];
   // Each base hour produces :00 (closer) and :10 (overbook)
@@ -82,7 +80,7 @@ export function orderedHours(date: Date, settings?: Pick<Settings, "horarios_h1"
 }
 
 /** Determine if a slot is OB and which group (h1/h2) it belongs to */
-export function slotInfo(date: Date, h: string, settings?: Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">): { isOB: boolean; grp: "h1" | "h2" } {
+export function slotInfo(date: Date, h: string, settings?: HoursSettings): { isOB: boolean; grp: "h1" | "h2" } {
   const { h1 } = getHoursForDate(date, settings);
   const [hh, mm] = h.split(":");
   return {
