@@ -285,7 +285,10 @@ export default function AgendamentoTab({
                   {/* Daily score */}
                   {(() => {
                     const entries = Object.values(dm).flat();
-                    const counts = produtos.map((p) => ({ p, n: entries.filter((e) => e.produto === p).length }));
+                    // Only count active "Agendamento" status — cancelled are already excluded by dayMap,
+                    // reagendamentos (status="Reagendamento") must not count in the placard
+                    const activeEntries = entries.filter((e) => e.status === "Agendamento");
+                    const counts = produtos.map((p) => ({ p, n: activeEntries.filter((e) => e.produto === p).length }));
 
                     let totalSlots = 0;
                     hrs.forEach((h) => {
@@ -293,7 +296,7 @@ export default function AgendamentoTab({
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
-                    const filled = entries.length;
+                    const filled = activeEntries.length;
                     const free = Math.max(0, totalSlots - filled);
                     const pct = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
 
