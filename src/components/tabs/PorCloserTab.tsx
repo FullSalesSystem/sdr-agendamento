@@ -24,7 +24,7 @@ export default function PorCloserTab({ agendamentos, closers, selM }: Props) {
     () =>
       closers.map((c) => ({
         name: c,
-        ag: agendamentos.filter((a) => a.closer === c && a.status === "Agendamento").length,
+        ag: agendamentos.filter((a) => a.closer === c && a.status === "Agendamento" && !a.cancelado).length,
         re: agendamentos.filter((a) => a.closer === c && a.cancel_motivo === "Lead pediu para reagendar").length,
         bl: agendamentos.filter(
           (a) =>
