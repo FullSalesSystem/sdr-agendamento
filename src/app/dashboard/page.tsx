@@ -205,8 +205,13 @@ export default function DashboardPage() {
       setDelModal(null);
       setModal(null);
       toast("Agendamento cancelado");
-    } catch {
-      toast("Erro ao cancelar agendamento", "error");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg === "RLS_BLOCKED") {
+        toast("Cancelamento não salvo no banco — desative o RLS no Supabase SQL Editor: ALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;", "error");
+      } else {
+        toast("Erro ao cancelar agendamento", "error");
+      }
     }
   }
 
