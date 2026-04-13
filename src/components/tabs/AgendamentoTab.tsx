@@ -37,12 +37,15 @@ export default function AgendamentoTab({
   function dayCnt(date: Date | null): number {
     if (!date) return 0;
     const key = fmtDate(date);
-    return agendamentos.filter((a) => a.date === key && !a.cancelado).length;
+    // Only count active appointments (status=Agendamento, not cancelled/reagendado)
+    return agendamentos.filter((a) => a.date === key && !a.cancelado && a.status === "Agendamento").length;
   }
 
   function dayMap(date: Date): Record<string, Agendamento[]> {
     const key = fmtDate(date);
     const map: Record<string, Agendamento[]> = {};
+    // Show all non-cancelled in grid (so user can see/edit reagendados), but
+    // placard score counts only status=Agendamento via activeEntries filter below
     agendamentos
       .filter((a) => a.date === key && !a.cancelado)
       .forEach((a) => {
@@ -296,8 +299,8 @@ export default function AgendamentoTab({
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
-                    // filled = ALL occupied slots (including reagendamentos) so Livres = truly free
-                    const filled = entries.length;
+                    // filled = only active Agendamento slots; cancelled/reagendados free up the slot
+                    const filled = activeEntries.length;
                     const free = Math.max(0, totalSlots - filled);
                     const pct = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
 
