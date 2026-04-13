@@ -296,7 +296,8 @@ export default function AgendamentoTab({
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
-                    const filled = activeEntries.length;
+                    // filled = ALL occupied slots (including reagendamentos) so Livres = truly free
+                    const filled = entries.length;
                     const free = Math.max(0, totalSlots - filled);
                     const pct = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
 
