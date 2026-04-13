@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Metric from "@/components/Metric";
 import type { Agendamento } from "@/lib/types";
+import { ACTIVE_STATUSES } from "@/lib/constants";
 import { MESES } from "@/lib/constants";
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
 export default function RelatorioTab({ agendamentos, produtos, selM }: Props) {
   const mAgs = agendamentos;
 
-  const totAg = mAgs.filter((a) => a.status === "Agendamento").length;
+  const totAg = mAgs.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
   const totRe = mAgs.filter((a) => a.status === "Reagendamento").length;
   const totBl = mAgs.filter((a) => a.status === "Bloqueado").length;
   const totNS = mAgs.filter((a) => a.motivo === "No show").length;

@@ -7,7 +7,7 @@ import {
   weekOf, monthDays, toWeeks, orderedHours, slotInfo, getHoursForDate,
   fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay,
 } from "@/lib/utils";
-import { DSEM } from "@/lib/constants";
+import { DSEM, ACTIVE_STATUSES } from "@/lib/constants";
 
 type HoursConfig = Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">;
 
@@ -38,7 +38,7 @@ export default function AgendamentoTab({
     if (!date) return 0;
     const key = fmtDate(date);
     // Only count active appointments (status=Agendamento, not cancelled/reagendado)
-    return agendamentos.filter((a) => a.date === key && !a.cancelado && a.status === "Agendamento").length;
+    return agendamentos.filter((a) => a.date === key && !a.cancelado && ACTIVE_STATUSES.includes(a.status)).length;
   }
 
   function dayMap(date: Date): Record<string, Agendamento[]> {
@@ -290,7 +290,7 @@ export default function AgendamentoTab({
                     // Go directly to source — explicit triple filter: correct date + not cancelled + status Agendamento
                     const dateKey = fmtDate(date);
                     const activeForDay = agendamentos.filter(
-                      (a) => a.date === dateKey && a.cancelado !== true && a.status === "Agendamento"
+                      (a) => a.date === dateKey && a.cancelado !== true && ACTIVE_STATUSES.includes(a.status)
                     );
                     const counts = produtos.map((p) => ({ p, n: activeForDay.filter((e) => e.produto === p).length }));
 

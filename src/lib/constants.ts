@@ -5,7 +5,10 @@ export const MESES = [
 
 export const DSEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export const STATUS_LIST = ["Agendamento", "Reagendamento", "Bloqueado", "Livre"];
+export const STATUS_LIST = ["Agendamento", "Segunda Reunião", "Reagendamento", "Bloqueado", "Livre"];
+
+// Statuses that count as an active scheduled appointment in the placard
+export const ACTIVE_STATUSES = ["Agendamento", "Segunda Reunião"];
 
 // Default hours (used as fallback and initial config)
 export const DEFAULT_H1 = ["10", "13", "15", "17", "19"];
@@ -26,6 +29,7 @@ export type TabName = (typeof TABS)[number];
 
 export const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   Agendamento: { bg: "bg-green-50", text: "text-green-700", border: "border-green-300" },
+  "Segunda Reunião": { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-300" },
   Reagendamento: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-300" },
   Bloqueado: { bg: "bg-red-50", text: "text-red-700", border: "border-red-300" },
   Livre: { bg: "bg-gray-50", text: "text-gray-500", border: "border-gray-300" },
