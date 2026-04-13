@@ -287,11 +287,12 @@ export default function AgendamentoTab({
 
                   {/* Daily score */}
                   {(() => {
-                    const entries = Object.values(dm).flat();
-                    // Only count active "Agendamento" status — cancelled are already excluded by dayMap,
-                    // reagendamentos (status="Reagendamento") must not count in the placard
-                    const activeEntries = entries.filter((e) => e.status === "Agendamento");
-                    const counts = produtos.map((p) => ({ p, n: activeEntries.filter((e) => e.produto === p).length }));
+                    // Go directly to source — explicit triple filter: correct date + not cancelled + status Agendamento
+                    const dateKey = fmtDate(date);
+                    const activeForDay = agendamentos.filter(
+                      (a) => a.date === dateKey && a.cancelado !== true && a.status === "Agendamento"
+                    );
+                    const counts = produtos.map((p) => ({ p, n: activeForDay.filter((e) => e.produto === p).length }));
 
                     let totalSlots = 0;
                     hrs.forEach((h) => {
@@ -299,8 +300,8 @@ export default function AgendamentoTab({
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
-                    // filled = only active Agendamento slots; cancelled/reagendados free up the slot
-                    const filled = activeEntries.length;
+                    // Only real agendamentos occupy a slot; cancelled/reagendados/bloqueados = livre
+                    const filled = activeForDay.length;
                     const free = Math.max(0, totalSlots - filled);
                     const pct = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
 
