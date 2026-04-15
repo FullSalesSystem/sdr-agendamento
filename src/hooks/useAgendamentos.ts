@@ -78,12 +78,6 @@ export function useAgendamentos() {
 
   // Cancel preserves closer/produto/sdr for metrics history
   const cancel = useCallback(async (id: string, motivo: string) => {
-    // Optimistic update so UI reflects immediately
-    setAgendamentos((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, cancelado: true, cancel_motivo: motivo, status: "Livre" } : a
-      )
-    );
     try {
       const { data, error } = await supabase
         .from("agendamentos")
@@ -98,13 +92,7 @@ export function useAgendamentos() {
         .single();
 
       if (error) {
-        // Revert optimistic update
-        setAgendamentos((prev) =>
-          prev.map((a) =>
-            a.id === id ? { ...a, cancelado: false, cancel_motivo: null, status: "Agendamento" } : a
-          )
-        );
-        console.error("[RLS] Cancelamento bloqueado — execute no Supabase SQL Editor:\nALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;");
+        console.error("[RLS] Cancelamento bloqueado. Execute no Supabase SQL Editor:\nALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;");
         throw new Error("RLS_BLOCKED");
       }
       if (data) {

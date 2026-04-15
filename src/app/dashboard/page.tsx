@@ -186,8 +186,16 @@ export default function DashboardPage() {
       await upsert(modal.date, f, modal.agId);
       setModal(null);
       toast(modal.agId ? "Agendamento atualizado" : "Agendamento criado");
-    } catch {
-      toast("Erro ao salvar agendamento", "error");
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : String(err);
+      if (detail.includes("23505") || detail.includes("unique")) {
+        toast("Slot já ocupado — este horário/closer já tem agendamento.", "error");
+      } else if (detail.includes("RLS") || detail.includes("PGRST") || detail.includes("42501")) {
+        toast("Sem permissão — desative o RLS no Supabase: ALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;", "error");
+      } else {
+        toast("Erro ao salvar agendamento", "error");
+      }
+      console.error("[handleSave] erro:", detail);
     }
   }
 
