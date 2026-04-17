@@ -81,11 +81,15 @@ export function orderedHours(date: Date, settings?: HoursSettings): string[] {
 
 /** Determine if a slot is OB and which group (h1/h2) it belongs to */
 export function slotInfo(date: Date, h: string, settings?: HoursSettings): { isOB: boolean; grp: "h1" | "h2" } {
-  const { h1 } = getHoursForDate(date, settings);
+  const { h1, h2 } = getHoursForDate(date, settings);
   const [hh, mm] = h.split(":");
+  // If somehow the hour exists in both groups (legacy data), h2 takes priority
+  // to preserve the original h2 closers (the most common config issue)
+  const inH1 = h1.includes(hh);
+  const inH2 = h2.includes(hh);
   return {
     isOB: mm === "10",
-    grp: h1.includes(hh) ? "h1" : "h2",
+    grp: inH2 ? "h2" : inH1 ? "h1" : "h2",
   };
 }
 

@@ -42,10 +42,22 @@ export default function ConfiguracoesTab({ settings, onSave }: Props) {
     const n = parseInt(val);
     if (isNaN(n) || n < 0 || n > 23) return;
     const h = String(n);
+    // Opposite key mapping — a hora só pode existir em um grupo por vez
+    const opposite: Record<string, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab"> = {
+      horarios_h1: "horarios_h2",
+      horarios_h2: "horarios_h1",
+      horarios_h1_sab: "horarios_h2_sab",
+      horarios_h2_sab: "horarios_h1_sab",
+    };
     setLocal((prev) => {
-      const current = prev[key];
-      if (current.includes(h)) return prev;
-      return { ...prev, [key]: [...current, h].sort((a, b) => +a - +b) };
+      if (prev[key].includes(h)) return prev; // já existe no mesmo grupo
+      const opp = opposite[key];
+      return {
+        ...prev,
+        [key]: [...prev[key], h].sort((a, b) => +a - +b),
+        // Remove do grupo oposto para evitar conflito de grupo nos slots
+        [opp]: prev[opp].filter((x: string) => x !== h),
+      };
     });
     setNewHour((p) => ({ ...p, [key]: "" }));
   }
