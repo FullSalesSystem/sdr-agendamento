@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import type { Agendamento, SDRStats } from "@/lib/types";
-import { MESES, ACTIVE_STATUSES } from "@/lib/constants";
+import { MESES } from "@/lib/constants";
+import { isActiveAg } from "@/lib/utils";
 
 interface Props {
   agendamentos: Agendamento[];
@@ -17,7 +18,7 @@ export default function SDRsTab({ agendamentos, sdrs, selM }: Props) {
         const mine = agendamentos.filter((a) => a.sdr === s);
         return {
           name: s,
-          ag: mine.filter((a) => ACTIVE_STATUSES.includes(a.status)).length,
+          ag: mine.filter((a) => isActiveAg(a)).length,
           re: mine.filter((a) => a.status === "Reagendamento").length,
           tot: mine.length,
           ps: [...new Set(mine.map((a) => a.produto).filter(Boolean))].join(", ") || "—",

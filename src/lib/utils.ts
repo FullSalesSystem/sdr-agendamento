@@ -1,5 +1,15 @@
-import { DEFAULT_H1, DEFAULT_H1_SAB, DEFAULT_H2, DEFAULT_H2_SAB } from "./constants";
-import type { Settings } from "./types";
+import { DEFAULT_H1, DEFAULT_H1_SAB, DEFAULT_H2, DEFAULT_H2_SAB, ACTIVE_STATUSES } from "./constants";
+import type { Agendamento, Settings } from "./types";
+
+/**
+ * An appointment is "active" (counts in placards) when:
+ * - cancelado is not true
+ * - has no cancel_motivo (defensive: catches partial cancels)
+ * - status is in ACTIVE_STATUSES ("Agendamento" | "Segunda Reunião")
+ */
+export function isActiveAg(a: Agendamento): boolean {
+  return a.cancelado !== true && !a.cancel_motivo && ACTIVE_STATUSES.includes(a.status);
+}
 
 export function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

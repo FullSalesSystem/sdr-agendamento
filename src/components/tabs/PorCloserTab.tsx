@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Metric from "@/components/Metric";
 import type { Agendamento, CloserStats } from "@/lib/types";
-import { ACTIVE_STATUSES } from "@/lib/constants";
+import { isActiveAg } from "@/lib/utils";
 import { MESES } from "@/lib/constants";
 
 interface Props {
@@ -25,7 +25,7 @@ export default function PorCloserTab({ agendamentos, closers, selM }: Props) {
     () =>
       closers.map((c) => ({
         name: c,
-        ag: agendamentos.filter((a) => a.closer === c && ACTIVE_STATUSES.includes(a.status) && !a.cancelado).length,
+        ag: agendamentos.filter((a) => a.closer === c && isActiveAg(a)).length,
         re: agendamentos.filter((a) => a.closer === c && a.cancel_motivo === "Lead pediu para reagendar").length,
         bl: agendamentos.filter(
           (a) =>

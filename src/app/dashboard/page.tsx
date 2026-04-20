@@ -4,10 +4,10 @@ import { useState, useMemo, useCallback } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useToast } from "@/components/Toast";
-import { MESES, TABS, ACTIVE_STATUSES } from "@/lib/constants";
+import { MESES, TABS } from "@/lib/constants";
 import type { TabName } from "@/lib/constants";
 import type { Agendamento, AgendamentoForm, Settings } from "@/lib/types";
-import { orderedHours } from "@/lib/utils";
+import { orderedHours, isActiveAg } from "@/lib/utils";
 import AgendamentoModal from "@/components/AgendamentoModal";
 import DeleteModal from "@/components/DeleteModal";
 import AgendamentoTab from "@/components/tabs/AgendamentoTab";
@@ -152,9 +152,9 @@ export default function DashboardPage() {
     });
   }, [agendamentos, selM, selY]);
 
-  const monthAgsActive = useMemo(() => monthAgs.filter((a) => !a.cancelado), [monthAgs]);
+  const monthAgsActive = useMemo(() => monthAgs.filter((a) => isActiveAg(a)), [monthAgs]);
 
-  const totalMonth = monthAgsActive.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
+  const totalMonth = monthAgsActive.length;
 
   const selWeek = useCallback((d: Date) => {
     setWDate(d);

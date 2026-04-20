@@ -5,9 +5,9 @@ import Badge from "@/components/Badge";
 import type { Agendamento, GroupConfig, Settings } from "@/lib/types";
 import {
   weekOf, monthDays, toWeeks, orderedHours, slotInfo, getHoursForDate,
-  fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay,
+  fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay, isActiveAg,
 } from "@/lib/utils";
-import { DSEM, ACTIVE_STATUSES } from "@/lib/constants";
+import { DSEM } from "@/lib/constants";
 
 type HoursConfig = Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">;
 
@@ -37,17 +37,15 @@ export default function AgendamentoTab({
   function dayCnt(date: Date | null): number {
     if (!date) return 0;
     const key = fmtDate(date);
-    // Only count active appointments (status=Agendamento, not cancelled/reagendado)
-    return agendamentos.filter((a) => a.date === key && !a.cancelado && ACTIVE_STATUSES.includes(a.status)).length;
+    return agendamentos.filter((a) => a.date === key && isActiveAg(a)).length;
   }
 
   function dayMap(date: Date): Record<string, Agendamento[]> {
     const key = fmtDate(date);
     const map: Record<string, Agendamento[]> = {};
-    // Show all non-cancelled in grid (so user can see/edit reagendados), but
-    // placard score counts only status=Agendamento via activeEntries filter below
+    // Grid shows only non-cancelled (so user can see reagendados visually)
     agendamentos
-      .filter((a) => a.date === key && !a.cancelado)
+      .filter((a) => a.date === key && a.cancelado !== true && !a.cancel_motivo)
       .forEach((a) => {
         if (!map[a.horario]) map[a.horario] = [];
         map[a.horario].push(a);
@@ -287,10 +285,9 @@ export default function AgendamentoTab({
 
                   {/* Daily score */}
                   {(() => {
-                    // Go directly to source — explicit triple filter: correct date + not cancelled + status Agendamento
                     const dateKey = fmtDate(date);
                     const activeForDay = agendamentos.filter(
-                      (a) => a.date === dateKey && a.cancelado !== true && ACTIVE_STATUSES.includes(a.status)
+                      (a) => a.date === dateKey && isActiveAg(a)
                     );
                     const counts = produtos.map((p) => ({ p, n: activeForDay.filter((e) => e.produto === p).length }));
 
