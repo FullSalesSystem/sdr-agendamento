@@ -43,10 +43,15 @@ export default function AgendamentoTab({
   function dayMap(date: Date): Record<string, Agendamento[]> {
     const key = fmtDate(date);
     const map: Record<string, Agendamento[]> = {};
-    // Grid shows only non-cancelled (so user can see reagendados visually)
     agendamentos
       .filter((a) => a.date === key && a.cancelado !== true && !a.cancel_motivo)
       .forEach((a) => {
+        const { isOB, grp } = slotInfo(date, a.horario, hoursConfig);
+        const cfg = getConfig(grp);
+        // Only include if the appointment will actually render in the grid:
+        // - OB slots: rendered by index (always include)
+        // - Closer slots: only if the closer exists in current config
+        if (!isOB && !cfg.closers.includes(a.closer)) return;
         if (!map[a.horario]) map[a.horario] = [];
         map[a.horario].push(a);
       });
