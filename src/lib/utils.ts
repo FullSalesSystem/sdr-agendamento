@@ -90,6 +90,29 @@ export function orderedHours(date: Date, settings?: HoursSettings): string[] {
   return [...all.map((h) => h + ":00"), ...all.map((h) => h + ":10")].sort();
 }
 
+/**
+ * Like orderedHours but preserves group membership — when the same hour
+ * appears in BOTH H1 and H2 it produces TWO entries (one per group),
+ * so the grid can render each group's closers independently.
+ */
+export function orderedSlots(date: Date, settings?: HoursSettings): { h: string; grp: "h1" | "h2" }[] {
+  const { h1, h2 } = getHoursForDate(date, settings);
+  const slots: { h: string; grp: "h1" | "h2" }[] = [
+    ...h1.flatMap((h) => [
+      { h: h + ":00", grp: "h1" as const },
+      { h: h + ":10", grp: "h1" as const },
+    ]),
+    ...h2.flatMap((h) => [
+      { h: h + ":00", grp: "h2" as const },
+      { h: h + ":10", grp: "h2" as const },
+    ]),
+  ];
+  // Sort by time, then h1 before h2 when tied
+  return slots.sort((a, b) =>
+    a.h < b.h ? -1 : a.h > b.h ? 1 : a.grp < b.grp ? -1 : 1
+  );
+}
+
 /** Determine if a slot is OB and which group (h1/h2) it belongs to */
 export function slotInfo(date: Date, h: string, settings?: HoursSettings): { isOB: boolean; grp: "h1" | "h2" } {
   const { h1, h2 } = getHoursForDate(date, settings);

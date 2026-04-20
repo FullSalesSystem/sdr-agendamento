@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Badge from "@/components/Badge";
 import type { Agendamento, GroupConfig, Settings } from "@/lib/types";
 import {
-  weekOf, monthDays, toWeeks, orderedHours, slotInfo, getHoursForDate,
+  weekOf, monthDays, toWeeks, orderedSlots, getHoursForDate,
   fmtDate, fmtDateBR, isSun, isSat, isToday, isSameDay, isActiveAg,
 } from "@/lib/utils";
 import { DSEM } from "@/lib/constants";
@@ -40,20 +40,39 @@ export default function AgendamentoTab({
     return agendamentos.filter((a) => a.date === key && isActiveAg(a)).length;
   }
 
+  // Key format: "HH:MM|grp" — separates H1 and H2 entries at the same hour
   function dayMap(date: Date): Record<string, Agendamento[]> {
     const key = fmtDate(date);
+    const { h1, h2 } = (() => {
+      const sat = isSat(date);
+      const h1 = sat ? (hoursConfig.horarios_h1_sab ?? []) : (hoursConfig.horarios_h1 ?? []);
+      const h2 = sat ? (hoursConfig.horarios_h2_sab ?? []) : (hoursConfig.horarios_h2 ?? []);
+      return { h1, h2 };
+    })();
+
     const map: Record<string, Agendamento[]> = {};
+
     agendamentos
       .filter((a) => a.date === key && a.cancelado !== true && !a.cancel_motivo)
       .forEach((a) => {
-        const { isOB, grp } = slotInfo(date, a.horario, hoursConfig);
-        const cfg = getConfig(grp);
-        // Only include if the appointment will actually render in the grid:
-        // - OB slots: rendered by index (always include)
-        // - Closer slots: only if the closer exists in current config
-        if (!isOB && !cfg.closers.includes(a.closer)) return;
-        if (!map[a.horario]) map[a.horario] = [];
-        map[a.horario].push(a);
+        const [hh, mm] = a.horario.split(":");
+        const isOB = mm === "10";
+        // Determine which group(s) this appointment can belong to
+        const inH1 = h1.includes(hh);
+        const inH2 = h2.includes(hh);
+
+        const tryAdd = (grp: "h1" | "h2") => {
+          const cfg = getConfig(grp);
+          if (!isOB && !cfg.closers.includes(a.closer)) return;
+          const slotKey = `${a.horario}|${grp}`;
+          if (!map[slotKey]) map[slotKey] = [];
+          map[slotKey].push(a);
+        };
+
+        if (inH1) tryAdd("h1");
+        if (inH2) tryAdd("h2");
+        // Fallback: hour not in any group — use h2 priority (legacy data)
+        if (!inH1 && !inH2) tryAdd("h2");
       });
     return map;
   }
@@ -66,10 +85,10 @@ export default function AgendamentoTab({
     return grp === "h1" ? configH1 : configH2;
   }
 
-  function renderSlots(date: Date, h: string, dmap: Record<string, Agendamento[]>) {
-    const { isOB, grp } = slotInfo(date, h, hoursConfig);
+  function renderSlots(date: Date, h: string, grp: "h1" | "h2", dmap: Record<string, Agendamento[]>) {
+    const isOB = h.endsWith(":10");
     const cfg = getConfig(grp);
-    const slots = dmap[h] || [];
+    const slots = dmap[`${h}|${grp}`] || [];
     const rows: React.ReactNode[] = [];
 
     if (isOB) {
@@ -221,7 +240,7 @@ export default function AgendamentoTab({
       <div className="grid grid-cols-7 gap-2 min-w-[900px]">
         {week.map((date) => {
           const blk = isSun(date);
-          const hrs = orderedHours(date, hoursConfig);
+          const slots = orderedSlots(date, hoursConfig);
           const dm = dayMap(date);
           const today = isToday(date);
 
@@ -264,16 +283,17 @@ export default function AgendamentoTab({
                 </div>
               ) : (
                 <div className="p-1.5">
-                  {hrs.map((h) => {
-                    const { isOB } = slotInfo(date, h, hoursConfig);
+                  {slots.map(({ h, grp }) => {
+                    const isOB = h.endsWith(":10");
                     return (
-                      <div key={h}>
+                      <div key={`${h}|${grp}`}>
                         <div className={`text-[10px] font-bold px-1 pt-1.5 pb-0.5 mt-0.5 flex items-center gap-1.5 ${isOB ? "text-slate-400" : "text-blue-600"}`}>
                           <span className={`w-1 h-1 rounded-full ${isOB ? "bg-slate-300" : "bg-blue-400"}`} />
                           {h}
                           {isOB && <span className="text-[9px] font-semibold text-slate-300 uppercase">OB</span>}
+                          <span className="text-[9px] font-semibold text-slate-300 uppercase">{grp.toUpperCase()}</span>
                         </div>
-                        {renderSlots(date, h, dm)}
+                        {renderSlots(date, h, grp, dm)}
                       </div>
                     );
                   })}
@@ -292,13 +312,18 @@ export default function AgendamentoTab({
                   {(() => {
                     // Placard uses exactly what is VISIBLE in the grid (dm)
                     // If it shows in the grid and is active → counts. Otherwise → Livre.
-                    const visible = Object.values(dm).flat();
+                    // Use a Set to deduplicate appointments that appear in both H1 and H2 slots
+                    const visibleIds = new Set<string>();
+                    Object.values(dm).flat().forEach((a) => visibleIds.add(a.id));
+                    const visible = [...visibleIds].map((id) =>
+                      agendamentos.find((a) => a.id === id)!
+                    ).filter(Boolean);
                     const activeForDay = visible.filter(isActiveAg);
                     const counts = produtos.map((p) => ({ p, n: activeForDay.filter((e) => e.produto === p).length }));
 
                     let totalSlots = 0;
-                    hrs.forEach((h) => {
-                      const { isOB, grp } = slotInfo(date, h, hoursConfig);
+                    slots.forEach(({ h, grp }) => {
+                      const isOB = h.endsWith(":10");
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
