@@ -102,6 +102,7 @@ export default function AgendamentoTab({
               className="slot-entry bg-slate-50/80 border border-slate-200 rounded-lg px-2 py-1 cursor-pointer mb-1 flex items-center gap-1.5 overflow-hidden"
             >
               <span className="text-[9px] text-slate-500 font-bold shrink-0 uppercase bg-slate-200/60 rounded px-1 py-px">OB</span>
+              {e.closer && <span className="font-bold text-[11px] whitespace-nowrap shrink-0 text-blue-600">{e.closer}</span>}
               {e.sdr && <span className="text-[10px] text-slate-400 whitespace-nowrap truncate">{e.sdr}</span>}
               <Badge label={e.produto} />
               {e.status !== "Livre" && <Badge label={e.status} />}
