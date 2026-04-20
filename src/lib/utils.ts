@@ -84,7 +84,8 @@ export function getHoursForDate(date: Date, settings?: HoursSettings) {
 /** All hours for a date sorted chronologically (:00 and :10 for each) */
 export function orderedHours(date: Date, settings?: HoursSettings): string[] {
   const { h1, h2 } = getHoursForDate(date, settings);
-  const all = [...h1, ...h2];
+  // Deduplicate in case the same hour exists in both groups (config conflict)
+  const all = [...new Set([...h1, ...h2])];
   // Each base hour produces :00 (closer) and :10 (overbook)
   return [...all.map((h) => h + ":00"), ...all.map((h) => h + ":10")].sort();
 }

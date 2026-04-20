@@ -285,10 +285,10 @@ export default function AgendamentoTab({
 
                   {/* Daily score */}
                   {(() => {
-                    const dateKey = fmtDate(date);
-                    const activeForDay = agendamentos.filter(
-                      (a) => a.date === dateKey && isActiveAg(a)
-                    );
+                    // Placard uses exactly what is VISIBLE in the grid (dm)
+                    // If it shows in the grid and is active → counts. Otherwise → Livre.
+                    const visible = Object.values(dm).flat();
+                    const activeForDay = visible.filter(isActiveAg);
                     const counts = produtos.map((p) => ({ p, n: activeForDay.filter((e) => e.produto === p).length }));
 
                     let totalSlots = 0;
@@ -297,7 +297,6 @@ export default function AgendamentoTab({
                       const cfg = getConfig(grp);
                       totalSlots += isOB ? cfg.overbook : cfg.closers.length;
                     });
-                    // Only real agendamentos occupy a slot; cancelled/reagendados/bloqueados = livre
                     const filled = activeForDay.length;
                     const free = Math.max(0, totalSlots - filled);
                     const pct = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
