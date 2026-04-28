@@ -57,22 +57,30 @@ export default function AgendamentoTab({
       .forEach((a) => {
         const [hh, mm] = a.horario.split(":");
         const isOB = mm === "10";
-        // Determine which group(s) this appointment can belong to
         const inH1 = h1.includes(hh);
         const inH2 = h2.includes(hh);
 
-        const tryAdd = (grp: "h1" | "h2") => {
-          const cfg = getConfig(grp);
-          if (!isOB && !cfg.closers.includes(a.closer)) return;
+        const push = (grp: "h1" | "h2") => {
           const slotKey = `${a.horario}|${grp}`;
           if (!map[slotKey]) map[slotKey] = [];
           map[slotKey].push(a);
         };
 
-        if (inH1) tryAdd("h1");
-        if (inH2) tryAdd("h2");
-        // Fallback: hour not in any group — use h2 priority (legacy data)
-        if (!inH1 && !inH2) tryAdd("h2");
+        if (isOB) {
+          // OB: route to exactly ONE group based on which group's closers list
+          // contains this closer — keeps H1 OB and H2 OB fully independent.
+          const inH1Closers = configH1.closers.includes(a.closer);
+          const inH2Closers = configH2.closers.includes(a.closer);
+          // H2 priority if closer appears in both (shouldn't happen, but safe)
+          const grp = inH2Closers ? "h2" : inH1Closers ? "h1" : inH2 ? "h2" : "h1";
+          if (inH1 || inH2) push(grp);
+        } else {
+          // Regular slot: route per group by closer membership
+          if (inH1 && configH1.closers.includes(a.closer)) push("h1");
+          if (inH2 && configH2.closers.includes(a.closer)) push("h2");
+          // Fallback: hour not in any configured group (legacy data)
+          if (!inH1 && !inH2) push("h2");
+        }
       });
     return map;
   }
