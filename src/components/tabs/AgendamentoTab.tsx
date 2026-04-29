@@ -66,18 +66,21 @@ export default function AgendamentoTab({
           map[slotKey].push(a);
         };
 
+        const h1Closers: string[] = configH1?.closers ?? [];
+        const h2Closers: string[] = configH2?.closers ?? [];
+
         if (isOB) {
           // OB: route to exactly ONE group based on which group's closers list
           // contains this closer — keeps H1 OB and H2 OB fully independent.
-          const inH1Closers = configH1.closers.includes(a.closer);
-          const inH2Closers = configH2.closers.includes(a.closer);
+          const inH1Closers = h1Closers.includes(a.closer);
+          const inH2Closers = h2Closers.includes(a.closer);
           // H2 priority if closer appears in both (shouldn't happen, but safe)
           const grp = inH2Closers ? "h2" : inH1Closers ? "h1" : inH2 ? "h2" : "h1";
           if (inH1 || inH2) push(grp);
         } else {
           // Regular slot: route per group by closer membership
-          if (inH1 && configH1.closers.includes(a.closer)) push("h1");
-          if (inH2 && configH2.closers.includes(a.closer)) push("h2");
+          if (inH1 && h1Closers.includes(a.closer)) push("h1");
+          if (inH2 && h2Closers.includes(a.closer)) push("h2");
           // Fallback: hour not in any configured group (legacy data)
           if (!inH1 && !inH2) push("h2");
         }
@@ -89,8 +92,10 @@ export default function AgendamentoTab({
     return d !== null && week.some((w) => isSameDay(w, d));
   }
 
-  function getConfig(grp: "h1" | "h2") {
-    return grp === "h1" ? configH1 : configH2;
+  function getConfig(grp: "h1" | "h2"): GroupConfig {
+    const cfg = grp === "h1" ? configH1 : configH2;
+    // Guard: if DB returned null for config (column added after row creation)
+    return cfg ?? { closers: [], overbook: 0 };
   }
 
   function renderSlots(date: Date, h: string, grp: "h1" | "h2", dmap: Record<string, Agendamento[]>) {

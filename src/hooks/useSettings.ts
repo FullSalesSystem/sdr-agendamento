@@ -23,10 +23,13 @@ const defaults: Omit<Settings, "id" | "user_id"> = {
 };
 
 function normalise(data: Record<string, unknown>): Settings {
+  const rawH1 = data.config_h1 as GroupConfig | null;
+  const rawH2 = data.config_h2 as GroupConfig | null;
   return {
     ...data,
-    config_h1: data.config_h1 as GroupConfig,
-    config_h2: data.config_h2 as GroupConfig,
+    // Guard against NULL in DB (column added after row creation)
+    config_h1: rawH1 && Array.isArray(rawH1.closers) ? rawH1 : DEFAULT_CONFIG_H1,
+    config_h2: rawH2 && Array.isArray(rawH2.closers) ? rawH2 : DEFAULT_CONFIG_H2,
     horarios_h1: (data.horarios_h1 as string[] | null) ?? DEFAULT_H1,
     horarios_h2: (data.horarios_h2 as string[] | null) ?? DEFAULT_H2,
     horarios_h1_sab: (data.horarios_h1_sab as string[] | null) ?? DEFAULT_H1_SAB,
