@@ -415,7 +415,6 @@ export default function DashboardPage() {
           produtos={settings.produtos}
           sdrs={settings.sdrs}
           motivos={settings.motivos}
-          hoursConfig={settings}
           onSave={handleSave}
           onDelete={modal.mode === "edit" ? handleDeleteClick : undefined}
           onClose={() => setModal(null)}

@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { AgendamentoForm, Settings } from "@/lib/types";
-import { orderedHours } from "@/lib/utils";
+import type { AgendamentoForm } from "@/lib/types";
 import { STATUS_LIST } from "@/lib/constants";
-
-type HoursConfig = Pick<Settings, "horarios_h1" | "horarios_h2" | "horarios_h1_sab" | "horarios_h2_sab">;
 
 interface Props {
   date: Date;
@@ -15,17 +12,15 @@ interface Props {
   produtos: string[];
   sdrs: string[];
   motivos: string[];
-  hoursConfig: HoursConfig;
   onSave: (form: AgendamentoForm) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
 export default function AgendamentoModal({
-  date, mode, initial, closers, produtos, sdrs, motivos, hoursConfig, onSave, onDelete, onClose,
+  date, mode, initial, closers, produtos, sdrs, motivos, onSave, onDelete, onClose,
 }: Props) {
   const [form, setForm] = useState<AgendamentoForm>(initial);
-  const hours = orderedHours(date, hoursConfig);
 
   useEffect(() => { setForm(initial); }, [initial]);
 
@@ -66,9 +61,9 @@ export default function AgendamentoModal({
 
         <div className="space-y-3.5">
           <Field label="Horário">
-            <select value={form.horario} onChange={(e) => upd("horario", e.target.value)} className="input-field">
-              {hours.map((h) => <option key={h}>{h}</option>)}
-            </select>
+            <div className="input-field bg-slate-50 text-slate-500 cursor-not-allowed select-none">
+              {form.horario}
+            </div>
           </Field>
 
           <Field label="Closer" required>
