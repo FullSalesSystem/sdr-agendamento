@@ -33,12 +33,12 @@ export default function AgendamentoModal({
     setForm((f) => ({ ...f, [key]: val, ...(key === "status" ? { motivo: "" } : {}) }));
 
   function handleSave() {
-    if (!form.horario || !form.closer || !form.produto) return;
+    if (!form.closer || !form.produto) return;
     onSave(form);
   }
 
   const dateLabel = date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
-  const isValid = form.horario && form.closer && form.produto;
+  const isValid = form.closer && form.produto;
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>

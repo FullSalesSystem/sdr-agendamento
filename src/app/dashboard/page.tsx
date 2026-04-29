@@ -163,7 +163,8 @@ export default function DashboardPage() {
   }, []);
 
   function openAdd(date: Date, hour?: string) {
-    setForm({ ...emptyForm(), horario: hour || orderedHours(date, settings)[0] });
+    const fallback = orderedHours(date, settings)[0] ?? "10:00";
+    setForm({ ...emptyForm(), horario: hour ?? fallback });
     setModal({ mode: "add", date });
   }
 
@@ -187,15 +188,27 @@ export default function DashboardPage() {
       setModal(null);
       toast(modal.agId ? "Agendamento atualizado" : "Agendamento criado");
     } catch (err: unknown) {
-      const detail = err instanceof Error ? err.message : String(err);
-      if (detail.includes("23505") || detail.includes("unique")) {
+      // Supabase errors are plain objects with { message, code, details }
+      const supaErr = err as { message?: string; code?: string; details?: string } | null;
+      const code = supaErr?.code ?? "";
+      const msg = supaErr?.message ?? (err instanceof Error ? err.message : String(err));
+      console.error("[handleSave] erro:", { code, msg, err });
+
+      if (code === "23505" || msg.includes("unique") || msg.includes("duplicate")) {
         toast("Slot já ocupado — este horário/closer já tem agendamento.", "error");
-      } else if (detail.includes("RLS") || detail.includes("PGRST") || detail.includes("42501")) {
-        toast("Sem permissão — desative o RLS no Supabase: ALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;", "error");
+      } else if (
+        code === "42501" ||
+        msg.includes("row-level security") ||
+        msg.includes("permission denied") ||
+        msg.includes("PGRST")
+      ) {
+        toast(
+          "Sem permissão (RLS ativo) — execute no Supabase SQL Editor: ALTER TABLE public.agendamentos DISABLE ROW LEVEL SECURITY;",
+          "error"
+        );
       } else {
-        toast("Erro ao salvar agendamento", "error");
+        toast(`Erro ao salvar: ${msg || code || "verifique o console (F12)"}`, "error");
       }
-      console.error("[handleSave] erro:", detail);
     }
   }
 
